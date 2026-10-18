@@ -87,11 +87,29 @@ dsh-portable/
 
 验证：真实 DSH_HOME 导出 + 临时 home 安装全链路通过（数字见第 1 节表格）。
 
+### 4.1 离线迁移套件（U 盘，2026-10-18）
+
+给「纯内网目标机」准备的一整套搬运介质，落在 `G:\DSH-Migration\`（exFAT，共约 875 MB）：
+
+| 目录 | 内容 | 说明 |
+| --- | --- | --- |
+| `01-installer` | `deepseek-harness-0.2.1-rc.2-win-x64.exe`（276 MB） | 从 updater 缓存取得；SHA-512 与 `update-info.json` 逐字节一致 |
+| `02-package` | `dsh-portable-20261018-2315.dshpkg`（597 MB，10.5 万条目 / 1.8 GB 展开） | `includeNodeModules=true`，其余开关全关（不含 sessions/runtimes/credentials/backups） |
+| `03-plugin` | 插件本体 28 文件 | 从仓库工作树拷出，含 `bootstrap/`，可直接落地 |
+| `04-docs` | PPT《DSH迁移-纯内网版.pptx》（14 页）/ `迁移说明.txt` / `SHA256SUMS.txt` | 演示 + 可打印速查 + 校验值 |
+
+验收证据（都实测过）：
+
+- 包里确实带着插件：`tar -tzf <pkg> | grep node_modules/dsh-portable/` 命中 28 条，含 `package.json` 与 `bootstrap/bootstrap.mjs`。
+- 目标机无 Node 也能导入：`$env:ELECTRON_RUN_AS_NODE='1'` + `DeepSeek Harness.exe <bootstrap.mjs> preview <pkg> --profile desktop --home <临时目录>` → 退出码 0，打印 `contents 97979 files, 1.8 GB, 9 top-level items` 与九项明细，末行 `nothing was written (preview).`。
+- 安装器完整：`Get-FileHash -Algorithm SHA512` 的 Base64 与官方 `update-info.json` 的 `sha512` 完全相等。
+- PPT 版面自检脚本（`_tmp_check_ppt.py` 思路）为 0 问题：14 页、无越界、无文字溢出。
+
 ## 5. 待办与下一步
 
 按优先级：
 
-1. **重启 DSH 收尾集成**：当前进程里的插件是热挂载的临时实例。删掉 `<profile>/cordis.patch.yml` 末尾的 `- id: mkt-dsh-portable` 条目（连同 `name: dsh-portable`），再重启桌面应用；启动后插件由 bundle 层正常加载，面板应显示 `v0.1.1 · desktop · <DSH_HOME>` 而不是任何错误行。
+1. ~~重启 DSH 收尾集成~~（已完成 2026-10-18 21:33）：临时热挂载条目 `mkt-dsh-portable` 已从 `<profile>/cordis.patch.yml` 删除并备份为 `.bak-20261018-restart`，重启后由 bundle 层正常加载（新端口 52803，`/dsh-portable/api/status` 回 403 = 路由已挂载）。
 2. **市场 PR（下一个动作）**：仓库 2026-10-18 创建，`awesome-dsh-plugin` 的 CI 要求仓库**创建满 1 天**，故 2026-10-19 起可投。步骤：fork → 只新增 `data/plugins/wjf1__dsh-portable.yml` → 开 PR（正文用 `market/PR.md`）→ 回复维护者。别手改 README（脚本生成）。
 3. **截图**：`README` 目前没有界面截图（本机浏览器工具不可用，无法自动截图）。上架前应人工截 3 张：导出卡片、导入预览、分享链接。
 4. **性能**：`skills-disabled` 在本机占 44.6 MB（整包 86%）。可考虑"默认排除已被禁用技能"的开关。

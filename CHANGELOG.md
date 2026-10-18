@@ -2,6 +2,24 @@
 
 本文件记录 dsh-portable 的所有重要变更，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## 0.1.3 — 2026-10-18
+
+修一个只在「同机同主目录」导入时才会触发的崩溃：安装其实已经成功，但 bootstrap CLI 在打印结果时把 `null` 当对象读，直接抛 `TypeError`。无 API／包格式变更，`dsh-portable/1` 与 0.1.x 互通。
+
+### 修复
+
+- **同机导入（源 home 与目标 home 相同）时 bootstrap 装完就崩**：`lib/installer.mjs` 只在「包内记录的源 home ≠ 本机 home」时才做路径重写，其余情况把 `report.rewrites` 留成 `null`；而 `bootstrap/bootstrap.mjs` 无条件读 `result.rewrites.files.length`，于是在**文件已全部落盘之后**抛 `TypeError: Cannot read properties of null (reading 'files')`，让用户以为导入失败。现在改为区分两种情况打印：有重写时报「N 个文件 M 处路径」，没有时明确说 `none (package was already built for <home>)`。
+
+### 测试
+
+- 新增 1 项：`test/installer.test.mjs` 用同一主目录既导出又导入，断言 `report.rewrites === null` 且文件照常落地（回归上面那个崩溃）。全量 43 项。
+
+### 验证
+
+- 空机器全链路手测：在临时 home 里造「源机器」目录树并打包 → 用一个**完全空白**的新 home 跑 `node bootstrap/bootstrap.mjs install <pkg> --home <新home> --profile desktop --yes` → 输出 `applied AGENTS.md, hooks, profiles`、`rewrites 3 files, 1 paths`；新 home 里 `profiles/desktop/node_modules/dsh-portable/index.js` 就位、`cordis.patch.yml` 里的旧 home 全部换成本机 home。
+- 无 Node 的机器也能跑：`ELECTRON_RUN_AS_NODE=1` + `DeepSeek Harness.exe` 可当 Node 24.21.0 用，实测能执行 `bootstrap.mjs --help`（exit 0）。
+- 插件自身可从包里捞出来再跑：`tar -xzf <pkg> -C <kit> profiles/<p>/node_modules/dsh-portable` 抽出插件（含 `bootstrap/install.ps1`），再用它导入同一个包。
+
 ## 0.1.2 — 2026-10-18
 
 修两个只在真机上才会撞到的读取缺陷：包内 manifest 被多包了一层，导致「查看包」和「包元信息」两个入口都拿不到 roots。无 API／包格式变更，`dsh-portable/1` 与 0.1.0／0.1.1 互通。

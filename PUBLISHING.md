@@ -73,7 +73,7 @@ Release 标题必须与 tag subject **逐字一致**：`v0.1.0: 首个版本：D
 | --- | --- |
 | `package.json` 声明 `dsh.bundle.patch` | ✅ `./cordis.patch.yml` |
 | 仓库根有 `cordis.patch.yml`（`- insert: - id/name`） | ✅ |
-| 仓库有真实可用代码，非占位 | ✅ 42 项测试 |
+| 仓库有真实可用代码，非占位 | ✅ 43 项测试 |
 | 仓库创建满 1 天 | ⏳ 2026-10-18 建仓，次日起可投 |
 | 仓库加 `dsh-plugin` topic | ✅ 已加（dsh-plugin / deepseek-harness / migration / backup） |
 | 描述真实、无营销词 | ✅ 见 `market/data/plugins/wjf1__dsh-portable.yml` |

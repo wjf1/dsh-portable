@@ -1,7 +1,7 @@
 # HANDOFF — dsh-portable 接力开发文档
 
 > 新会话接手：先读本文件，再读 `README.md`（行为契约）与 `CHANGELOG.md`（当前版本做了什么），最后才看代码。
-> 最后更新：2026-10-18 · 版本 0.1.2
+> 最后更新：2026-10-18 · 版本 0.1.3
 
 ---
 
@@ -11,14 +11,14 @@
 
 **解决的问题**：DSH 的 profile 是"配置 + 带 node_modules 的插件 + 技能 + hooks + 任务板"的集合，且配置里写死本机绝对路径与 profile 名。换机时直接复制目录会导致插件路径失效，而插件安装依赖联网 pnpm，在内网机上根本不可行。
 
-**当前状态（0.1.2，可交付）**：
+**当前状态（0.1.3，可交付）**：
 
 | 维度 | 状态 |
 | --- | --- |
 | 功能完整度 | 导出 / 预览 / 导入（merge、replace）/ 上传 / 局域网分享 / 备份 / 四个模型工具 / 设置页面板 —— 全部落地 |
-| 测试 | `npm test` 42 项全绿（tar 11、archive 5、installer 5、jobs 2、routes 12、share 6、inspect 1） |
+| 测试 | `npm test` 43 项全绿（tar 11、archive 5、installer 6、jobs 2、routes 12、share 6、inspect 1） |
 | 真实数据验证 | 对本机 `C:\\Users\\admin\\.dsh` 真导出：20 664 511 字节 / 13 774 条目 / 2.8 秒；再对临时 home 真安装：9 个顶层项全部落地、13491 文件、3 个文件 3 处路径被重写 |
-| 发布状态 | **已发布 0.1.0 / 0.1.1 / 0.1.2**：0.1.2（24 文件 / shasum `6d1db122…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.2>，ci + release 全绿，本机 profile 已升到 `^0.1.2`）· 0.1.1（24 文件 / shasum `660369b0…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.1>，release.yml run 39103118643 真跑 npm publish）· 0.1.0 详情：npm <https://www.npmjs.com/package/dsh-portable>（24 文件 / 60.2 kB / shasum `1684d7b8…`）、GitHub Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.0>、tag `v0.1.0`；线上安装 + `import('dsh-portable')` 冒烟通过 |
+| 发布状态 | **已发布 0.1.0 / 0.1.1 / 0.1.2（0.1.3 发布中）**：0.1.2（24 文件 / shasum `6d1db122…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.2>，ci + release 全绿，本机 profile 已升到 `^0.1.2`）· 0.1.1（24 文件 / shasum `660369b0…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.1>，release.yml run 39103118643 真跑 npm publish）· 0.1.0 详情：npm <https://www.npmjs.com/package/dsh-portable>（24 文件 / 60.2 kB / shasum `1684d7b8…`）、GitHub Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.0>、tag `v0.1.0`；线上安装 + `import('dsh-portable')` 冒烟通过 |
 | 本机集成 | desktop profile 里已用 `npm install dsh-portable --legacy-peer-deps` 装好（`dependencies` 有记录、`dsh.profile.bundles` 有条目），面板在 设置 → 便携迁移。**2026-10-18 21:33 已按计划重启收尾**：临时热挂载条目 `mkt-dsh-portable` 已从 `<profile>/cordis.patch.yml` 删除（备份 `.bak-20261018-restart`），重启后由 bundle 层正式加载一份实例，`/dsh-portable/api/status` 回 403（身份闸）、未知路径 404，模型工具 `portable_export` 在真机上导出 118 MB / 14 841 条目成功。**踩过的坑**：早先手工拷贝的目录被同 profile 的 `npm install` 当 extraneous 清掉，插件静默消失、面板只剩 `HTTP 404` |
 | 上架路径 | 向 `awesome-dsh-plugin/awesome-dsh-plugin` 提交条目（材料在 `market/`，见 `PUBLISHING.md`）；仓库创建未满 1 天前投不进去 |
 
@@ -66,9 +66,11 @@ dsh-portable/
 - 配置解析顺序：`config.profile` → `ctx.get('profileContext').name` → `DSH_PROFILE` → `desktop`。
 - 对外服务一律 `ctx.get('svc')`，未在 `inject` 里声明的属性直接访问会抛。
 
-## 4. 最近一轮变更与交付成果（0.1.2）
+## 4. 最近一轮变更与交付成果（0.1.3）
 
-**0.1.2（当前）**：修两个读取缺陷 —— `readManifest()` 返回 `{ manifest, raw }`，而 `lib/tools.mjs` 的 `inspectPackage` 与 `lib/routes.mjs` 的 `GET /artifacts/meta` 都把整个返回值当 manifest 用，导致模型工具抛 `Cannot read properties of undefined (reading 'map')`、HTTP 入口把 manifest 原文多包一层。两处改为显式取 `.manifest`，`meta` 额外返回拍平的 `roots`；`inspectPackage` 缺 manifest 时报可读错误。新增 2 项测试（真包跑模型工具、真包跑 meta），全量 42 项。
+**0.1.3（当前）**：修「同机同主目录」导入的收尾崩溃 —— `lib/installer.mjs` 只在源 home ≠ 本机 home 时才做路径重写（否则 `report.rewrites` 为 `null`），而 `bootstrap/bootstrap.mjs` 无条件读 `result.rewrites.files.length`，于是在**文件已落盘之后**抛 `TypeError: Cannot read properties of null`，误导用户以为导入失败。改为分情况打印（有重写报「N 个文件 M 处路径」，没有时打印 `none (package was already built for <home>)`）；新增 1 项回归测试（同 home 既导出又导入，断言 `rewrites === null` 且文件照常落地），全量 43 项。同日空白 home 全链路手测通过：`bootstrap.mjs install` 输出 `applied AGENTS.md, hooks, profiles` + `rewrites 3 files, 1 paths`，新 home 里插件与 `cordis.patch.yml` 均按新 home 重写。
+
+**0.1.2**：修两个读取缺陷 —— `readManifest()` 返回 `{ manifest, raw }`，而 `lib/tools.mjs` 的 `inspectPackage` 与 `lib/routes.mjs` 的 `GET /artifacts/meta` 都把整个返回值当 manifest 用，导致模型工具抛 `Cannot read properties of undefined (reading 'map')`、HTTP 入口把 manifest 原文多包一层。两处改为显式取 `.manifest`，`meta` 额外返回拍平的 `roots`；`inspectPackage` 缺 manifest 时报可读错误。新增 2 项测试（真包跑模型工具、真包跑 meta），全量 42 项。
 
 **0.1.1**：面板在宿主端未加载时不再裸抛 `HTTP 404` —— `describeFailure()`（`lib/client.js`）把 404 翻成「宿主端未加载：插件可能没装完，或者装好后还没重启 DSH」，403 翻成「请求被宿主拒绝：请在 DSH 窗口里打开这个面板」，其余状态码保留 `HTTP <code>`，文案随宿主语言；双语 README 的安装章节写明包必须登记进 profile 的 `dependencies` + `dsh.profile.bundles`，手工拷 `node_modules` 会被下一次 `npm install` 清掉。无 API / 格式变更，40 项测试全绿。
 

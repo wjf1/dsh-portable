@@ -176,7 +176,11 @@ async function main() {
   process.stdout.write('\ninstalled.\n');
   const applied = result.applied.map((item) => item.top + (item.mode === 'replace' ? ' (replaced)' : '')).join(', ');
   process.stdout.write('  applied     ' + applied + '\n');
-  process.stdout.write('  rewrites    ' + result.rewrites.files.length + ' files, ' + result.rewrites.changes + ' paths\n');
+  if (result.rewrites) {
+    process.stdout.write('  rewrites    ' + result.rewrites.files.length + ' files, ' + result.rewrites.changes + ' paths\n');
+  } else {
+    process.stdout.write('  rewrites    none (package was already built for ' + home + ')\n');
+  }
   if (result.backup && result.backup.dir) process.stdout.write('  backup      ' + result.backup.dir + '\n');
   if (result.warnings && result.warnings.length > 0) {
     process.stdout.write('  warnings    ' + result.warnings.length + ' (see below)\n');

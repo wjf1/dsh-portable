@@ -112,6 +112,18 @@ test('replace moves the old tree aside', async () => {
   await rm(target, { recursive: true, force: true });
 });
 
+test('installing into the source home skips rewriting but still applies', async () => {
+  const home = await makeSourceHome();
+  const file = await packageIt(home);
+
+  const report = await install({ filePath: file, dshHome: home });
+  assert.equal(report.rewrites, null, 'a same-home import must not rewrite anything');
+  assert.equal(await readFile(path.join(home, 'AGENTS.md'), 'utf8'), 'rules\n');
+  assert.equal(await exists(path.join(home, 'profiles', 'desktop', 'package.json')), true);
+
+  await rm(home, { recursive: true, force: true });
+});
+
 test('renames the profile when the target name differs', async () => {
   const home = await makeSourceHome();
   const file = await packageIt(home);

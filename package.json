@@ -1,0 +1,67 @@
+{
+  "name": "dsh-portable",
+  "version": "0.1.0",
+  "description": "Offline and online export/import for DeepSeek Harness: pack a whole working DSH home (profile, plugins with node_modules, skills, hooks, AGENTS.md, task boards) into one .dshpkg, restore it on another machine over a file, a URL, or a one-shot LAN share — no network and no pnpm install required on the target.",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": "^22.15.0 || >=24.0.0",
+    "dsh": ">=0.1.7-rc.2"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wjf1/dsh-portable.git"
+  },
+  "homepage": "https://github.com/wjf1/dsh-portable#readme",
+  "bugs": {
+    "url": "https://github.com/wjf1/dsh-portable/issues"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "migration",
+    "export",
+    "import",
+    "backup",
+    "offline",
+    "portable",
+    "airgap"
+  ],
+  "files": [
+    "index.js",
+    "lib",
+    "bootstrap",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh-CN.md",
+    "PUBLISHING.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check index.js && node --check lib/client.js && node -e \"import('./index.js')\"",
+    "sync": "node scripts/sync-profile.mjs",
+    "verify": "node scripts/verify-release.mjs"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": []
+    }
+  }
+}

@@ -1,0 +1,25 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: 语法与 import 冒烟
+        run: node --check index.js && node --check lib/client.js && node -e "import('./index.js')"
+      - name: 测试
+        run: node --test
+      - name: 发布检查（不重复跑测试）
+        run: node scripts/verify-release.mjs --skip-tests

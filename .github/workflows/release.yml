@@ -1,0 +1,50 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: 测试
+        run: node --test
+      - name: 发布检查
+        run: node scripts/verify-release.mjs --skip-tests
+      - name: npm publish
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: 从 tag 与 CHANGELOG 生成 Release
+        id: notes
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          TITLE=$(git for-each-ref "refs/tags/${TAG}" --format='%(contents:subject)')
+          if [ -z "$TITLE" ]; then echo "tag ${TAG} 不是 annotated tag，标题无法生成"; exit 1; fi
+          node -e "
+            const fs=require('fs');
+            const tag=process.env.TAG;
+            const body=fs.readFileSync('CHANGELOG.md','utf8').split(/^## /m);
+            const section=body.find(s=>s.startsWith(tag.slice(1)+' '))||body[1]||'';
+            fs.writeFileSync('release-body.md', '## ' + section.trim() + '\n');
+          "
+          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
+        env:
+          TAG: ${{ github.ref_name }}
+      - name: 创建 GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TITLE: ${{ steps.notes.outputs.title }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" --title "$TITLE" --notes-file release-body.md --verify-tag

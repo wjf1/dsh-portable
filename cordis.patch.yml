@@ -1,0 +1,7 @@
+# dsh-portable — registered as a profile bundle entry.
+#
+# The loader reads this when the profile is built: `insert` appends one entry
+# to the plugin stack, and `name` is the npm package that provides it.
+- insert:
+    - id: dsh-portable
+      name: 'dsh-portable'

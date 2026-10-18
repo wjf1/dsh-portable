@@ -1,0 +1,7 @@
+node_modules/
+_e2e/
+_tmp_*
+*.dshpkg
+*.log
+.DS_Store
+Thumbs.db

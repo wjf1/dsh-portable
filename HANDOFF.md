@@ -18,8 +18,9 @@
 | 功能完整度 | 导出 / 预览 / 导入（merge、replace）/ 上传 / 局域网分享 / 备份 / 四个模型工具 / 设置页面板 —— 全部落地 |
 | 测试 | `npm test` 40 项全绿（tar 11、archive 5、installer 5、jobs 2、routes 11、share 6） |
 | 真实数据验证 | 对本机 `C:\\Users\\admin\\.dsh` 真导出：20 664 511 字节 / 13 774 条目 / 2.8 秒；再对临时 home 真安装：9 个顶层项全部落地、13491 文件、3 个文件 3 处路径被重写 |
-| 发布状态 | **未发布**：仓库尚未 `git init`，未建 GitHub 仓库，未 `npm publish`，未进市场清单 |
-| 上架路径 | npm 发包 + 向 `awesome-dsh-plugin/awesome-dsh-plugin` 提交条目（见 `PUBLISHING.md`） |
+| 发布状态 | **已发布 0.1.0**：npm <https://www.npmjs.com/package/dsh-portable>（24 文件 / 60.2 kB / shasum `1684d7b8…`）、GitHub Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.0>、tag `v0.1.0`；线上安装 + `import('dsh-portable')` 冒烟通过 |
+| 本机集成 | 已装进 desktop profile（`node_modules/dsh-portable`，`dsh.profile.bundles` 第 24 项），热加载生效；面板在 设置 → 便携迁移 |
+| 上架路径 | 向 `awesome-dsh-plugin/awesome-dsh-plugin` 提交条目（材料在 `market/`，见 `PUBLISHING.md`）；仓库创建未满 1 天前投不进去 |
 
 ## 2. 技术栈与运行基线
 
@@ -84,7 +85,7 @@ dsh-portable/
 
 按优先级：
 
-1. **发布进度**：仓库已建并推送（<https://github.com/wjf1/dsh-portable>，main，topic：dsh-plugin / deepseek-harness / migration / backup）。**剩余阻塞 = npm 登录**：本机无任何 npm 凭据（`~/.npmrc` 只有 `prefix=E:\OpenCode`，无 token、无环境变量），`npm publish` 报 `ENEEDAUTH`。需人工执行 `npm login`（或提供 automation token 写进 `~/.npmrc` 的 `//registry.npmjs.org/:_authToken`）才能发布；包名 `dsh-portable` 在 npm 上仍是空闲（404）。发布后再推 `v0.1.0` tag 并提市场 PR（条目文件已备好在 `market/`）。
+1. **市场 PR（下一个动作）**：仓库 2026-10-18 创建，`awesome-dsh-plugin` 的 CI 要求仓库**创建满 1 天**，故 2026-10-19 起可投。步骤：fork → 只新增 `data/plugins/wjf1__dsh-portable.yml` → 开 PR（正文用 `market/PR.md`）→ 回复维护者。别手改 README（脚本生成）。
 2. **截图**：`README` 目前没有界面截图（本机浏览器工具不可用，无法自动截图）。上架前应人工截 3 张：导出卡片、导入预览、分享链接。
 3. **性能**：`skills-disabled` 在本机占 44.6 MB（整包 86%）。可考虑"默认排除已被禁用技能"的开关。
 4. **加密**：当前包是明文 tar。凭据入包时应支持口令加密（AES-256-GCM + scrypt）。
@@ -98,6 +99,12 @@ dsh-portable/
 - **`worker_threads`**：只用 `new Worker(url)` 会报 `Worker is not defined`，必须先 `import { Worker } from 'node:worker_threads'`。
 - **HTTP 下载计数**：`source.on('end')` 里 `response.writableFinished` 恒为 false，用 `response.on('finish')`。
 - **分享 TTL**：`clampTtl` 下限 1 分钟，测试用过小 TTL 无效，要白盒改 `share.shares.get(token).expiresAt`。
+- **npm 发布必须带 bypass-2FA 的 granular token**：普通 granular token 即使账号 2FA 关闭也会被拒，报 `403 … Two-factor authentication or granular access token with bypass 2fa enabled is required to publish packages`。网页端建 token 时勾 **Bypass two-factor authentication (2FA)**，Permissions 选 *Read and write (publish and stage)*，Packages 选 *All packages*；账号无组织时，组织权限必须选 *No access*，否则页面顶部报 *You must select at least one organization…*。
+- **`~/.npmrc` 追加 token 必须先补换行**：原文件末行无换行时 `Add-Content` 会把新行接到 `prefix=…` 后面拼成一行，npm 报 `ENEEDAUTH`。用 `Get-Content` 重写整个文件最稳。
+- **发布命令不要用 `| Select-Object -First N`**：管道被提前关闭会**杀掉 npm 进程**，日志停在 `Publishing to …`，既不报错也不成功。改为 `*>` 重定向到文件再读尾部。
+- **刚发布的包 fetch 会命中旧缓存**：`npm install dsh-portable@0.1.0` 可能报 `ETARGET No matching version`（缓存里只有占位的 `0.0.0-stage`），加 `--prefer-online` 即可。新包首次上线时 registry 元数据里会短暂只有 `0.0.0-stage` 占位版本。
+- **本仓库 `git push` 必须绕过全局代理**：`http.proxy=http://127.0.0.1:7900` 会让 GitHub 握手失败（`schannel: failed to receive handshake`），用 `git -c http.proxy= push`（仓库内已设 `http.proxy ""`）。
+- **release.yml 的 tag 标题**：`actions/checkout` 可能把 annotated tag 落成轻量标签，`%(contents:subject)` 退化成提交信息。工作流已改为先 `git fetch --force --tags`，非 tag 对象时走 GitHub API 取 message；标题与 tag subject 不一致时用 `gh release edit --title` 手工纠正。
 - **Windows 长路径**：所有 fs 调用都过 `longPath()`（加 `\\?\` 前缀），否则深层 node_modules 会 `ENOENT`。
 - **符号链接**：Windows 无开发者模式时创建失败，必须降级为 warning，不能中断导入。
 - **真实 DSH 目录**：`app.asar` 是**文件**不是目录，PowerShell 无法进入；要读源码得用 `npx asar extract` 或直接看 `resources/app.asar.unpacked`。

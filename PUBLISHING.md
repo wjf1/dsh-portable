@@ -143,3 +143,24 @@ dsh plugin --profile desktop add dsh-portable
 - npm：`npm unpublish dsh-portable@0.1.0`（24 小时内可用；之后只能 `deprecate`）。
 - 市场：向 awesome-dsh-plugin 提 PR 删除 `data/plugins/wjf1__dsh-portable.yml`。
 - 已装用户：`dsh plugin --profile desktop remove dsh-portable`。
+
+## 7. 0.1.0 实际发布记录（2026-10-18）
+
+| 项目 | 值 |
+| --- | --- |
+| npm 包 | <https://www.npmjs.com/package/dsh-portable> · 0.1.0 · 24 文件 / 60.2 kB · shasum `1684d7b872f3418d1723245584c7a62a9148e8dd` |
+| GitHub Release | <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.0>，标题 `v0.1.0: 首个版本：DSH 主目录打包与离线还原`（与 tag subject 逐字一致） |
+| CI | ci.yml 与 release.yml 全绿；release.yml 该次运行中「npm publish」按「版本已存在」自动跳过 |
+| 凭据 | 网页端新建 granular token 并勾 **Bypass two-factor authentication (2FA)**，写入 `~/.npmrc` 的 `//registry.npmjs.org/:_authToken`；仓库 secret `NPM_TOKEN` 同名 | 
+
+**踩过的坑**（下次照做）：
+
+1. 账号 2FA 关闭时，普通 granular token 发布会被 403 拒绝（要求 2FA 或带 bypass 的 token），因此必须勾 Bypass 2FA。
+2. 建 token 页面顶部若报 *You must select at least one organization…*，把 Organizations 权限设为 *No access*。
+3. 往 `~/.npmrc` 追加 token 前先补换行，否则会拼到 `prefix=` 那行后面导致 `ENEEDAUTH`。
+4. 发布输出别接 `| Select-Object -First`，管道提前关闭会杀死 npm 进程（表现为日志停在 `Publishing to …`）。
+5. 新包上线后立刻 `npm install` 可能因缓存报 `ETARGET`，加 `--prefer-online`。
+6. `git push` 走全局代理会 `schannel` 握手失败，用 `git -c http.proxy= push`。
+
+**后续可选升级**：改用 **Trusted Publishing（OIDC）**——在 npm 包设置里绑定本仓库与 `release.yml`，工作流加 `permissions: id-token: write` 后 `npm publish` 可免任何 token；那样 `NPM_TOKEN` secret 即可删除。
+

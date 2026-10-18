@@ -44,7 +44,14 @@ jobs:
         id: notes
         run: |
           TAG="${GITHUB_REF_NAME}"
-          TITLE=$(git for-each-ref "refs/tags/${TAG}" --format='%(contents:subject)')
+          # checkout 抓取历史时可能把 annotated tag 解析成轻量标签，先显式取回标签对象
+          git fetch --force --tags origin >/dev/null 2>&1 || true
+          if [ "$(git cat-file -t "refs/tags/${TAG}")" != "tag" ]; then
+            echo "tag ${TAG} 在本地不是 annotated tag，改为从远端 API 读取标签说明"
+            TITLE=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" --jq .object.sha | xargs -I{} gh api "repos/${GITHUB_REPOSITORY}/git/tags/{}" --jq .message | head -n1) || true
+          else
+            TITLE=$(git for-each-ref "refs/tags/${TAG}" --format='%(contents:subject)')
+          fi
           if [ -z "$TITLE" ]; then echo "tag ${TAG} 不是 annotated tag，标题无法生成"; exit 1; fi
           node -e "
             const fs=require('fs');

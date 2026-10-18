@@ -192,3 +192,15 @@ dsh plugin --profile desktop add dsh-portable
 10. **`readManifest()` 返回 `{ manifest, raw }` 是契约**：调用点误把整个返回值当 manifest 用时，模型工具直接抛 `Cannot read properties of undefined (reading 'map')`，HTTP 入口则把 `raw` 多包一层 —— 两处都已修，并补了用真包跑的测试，避免再次回归。
 **后续可选升级**：改用 **Trusted Publishing（OIDC）**——在 npm 包设置里绑定本仓库与 `release.yml`，工作流加 `permissions: id-token: write` 后 `npm publish` 可免任何 token；那样 `NPM_TOKEN` secret 即可删除。
 
+## 10. 0.1.3 实际发布记录（2026-10-18）
+
+| 项目 | 值 |
+| --- | --- |
+| npm 包 | <https://www.npmjs.com/package/dsh-portable> · 0.1.3 · 24 文件 / 200529 B 解包 · shasum `6dd213653469d8186add5310b0e884c590fd5bfc` |
+| GitHub Release | <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.3>，标题 `v0.1.3: 同机导入时 bootstrap 不再误报失败`（与 tag subject 逐字一致） |
+| CI | ci + release 均 success（headSha e98a741），release 这次真跑了 `npm publish` |
+| 本机集成 | profile `dependencies` 记为 `^0.1.3`；运行中的进程要等下次重启才载入 0.1.3 的代码 |
+
+**这次学到的**：
+
+9. **`report.rewrites` 可以是 `null`**：只有「包内记录的源 home ≠ 本机 home」才做路径重写，同机（或同路径）导入时它恒为 `null`。任何读 `result.rewrites.x` 的地方都要先判空 —— 0.1.3 修的就是 `bootstrap/bootstrap.mjs` 在安装成功之后因此抛 `TypeError` 的老问题。

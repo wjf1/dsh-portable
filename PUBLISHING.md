@@ -177,5 +177,18 @@ dsh plugin --profile desktop add dsh-portable
 7. **在 profile 里手工拷插件目录会被下次 `npm install` 清掉**：npm 把未在 `dependencies` 声明的目录当 extraneous 删除（这次 install 一次删了 6 个这样的包）。表现极具误导性 —— 设置页卡片照常渲染，但每个请求都回 `404`。装插件必须 `npm install <pkg> --legacy-peer-deps`（profile 有宿主导入的 peer，直接装会 `ERESOLVE`）或 `dsh plugin add`。
 8. **bundle 插件在运行中的进程里热挂载**：往 `<profile>/cordis.patch.yml` 追加 `- id: mkt-<包名>` + `name: <包名>` 两行即可（loader 十几秒内装好，路由从 404 变 403 就是证据）；**id 不能与 bundle 层插入的 id 相同**，同 id 会导致 DSH 启动硬失败；重启后它会变成第二份实例，重启前必须删掉。
 
+## 9. 0.1.2 实际发布记录（2026-10-18）
+
+| 项目 | 值 |
+| --- | --- |
+| npm 包 | <https://www.npmjs.com/package/dsh-portable> · 0.1.2 · 24 文件 / 198 961 B 解包 · shasum `6d1db1222ef18bd6abd95a7e5491a5682bb8c3f6` |
+| GitHub Release | <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.2>，标题 `v0.1.2: 修复包元信息读取与查看包报错`（与 tag subject 逐字一致） |
+| CI | release.yml 与 ci.yml 全绿（提交 190156d） |
+| 本机集成 | `<DSH_HOME>/profiles/desktop` 内 `npm install dsh-portable@0.1.2 --legacy-peer-deps --prefer-online` 成功（`dependencies` 记为 `^0.1.2`，bundles 仍 28 项、单条 dsh-portable） |
+
+**这次学到的**：
+
+9. **推 GitHub 的通道会变**：同一台机器上直连与代理都可能临时不通（直连 `Failed to connect to github.com port 443 after 21 s`，代理 `Connection was reset`），但 `curl -x http://127.0.0.1:7900 https://api.github.com/` 当时是 200。**先 curl 探路再决定 `git -c http.proxy=` 加不加**，不要连续盲重试；本仓库 `git config http.proxy` 留空、按需在命令行加。
+10. **`readManifest()` 返回 `{ manifest, raw }` 是契约**：调用点误把整个返回值当 manifest 用时，模型工具直接抛 `Cannot read properties of undefined (reading 'map')`，HTTP 入口则把 `raw` 多包一层 —— 两处都已修，并补了用真包跑的测试，避免再次回归。
 **后续可选升级**：改用 **Trusted Publishing（OIDC）**——在 npm 包设置里绑定本仓库与 `release.yml`，工作流加 `permissions: id-token: write` 后 `npm publish` 可免任何 token；那样 `NPM_TOKEN` secret 即可删除。
 

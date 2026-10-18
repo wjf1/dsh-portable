@@ -169,7 +169,7 @@ hooks/hooks.json
 ## 开发
 
 ```bash
-npm test          # 40 项：tar、archive、installer、jobs、routes、share
+npm test          # 42 项：tar、archive、installer、jobs、routes、share、inspect
 npm run check     # 语法检查 + import 冒烟
 npm run sync      # 把本包拷进某个 profile 的 node_modules 做真机联调
 npm run verify    # 发布门禁：版本一致、文件清单、测试

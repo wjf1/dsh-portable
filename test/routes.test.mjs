@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
+import { writePackage } from '../lib/archive.mjs';
 import { API_PREFIX, createRouter } from '../lib/routes.mjs';
 
 /** A job manager that never runs anything: these tests are about the surface. */
@@ -29,6 +30,9 @@ async function harness() {
   };
   await mkdir(store.dirs.exports, { recursive: true });
   await mkdir(store.dirs.uploads, { recursive: true });
+  // A real profile, so a test can build a real package inside this home.
+  await mkdir(path.join(home, 'profiles', 'desktop'), { recursive: true });
+  await writeFile(path.join(home, 'profiles', 'desktop', 'package.json'), '{"name":"x"}\n');
 
   const jobs = fakeJobs();
   const submitted = [];
@@ -238,6 +242,44 @@ test('a share request mints a link for a package that exists', async () => {
     })).json();
     assert.equal(body.share.remainingDownloads, 1);
     assert.equal(body.share.urls.length, 1);
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('artifact metadata returns the manifest, not the reader wrapper', async () => {
+  const ctx = await harness();
+  try {
+    await writePackage({
+      dshHome: ctx.home,
+      profileName: 'desktop',
+      options: {
+        includeNodeModules: false,
+        includeSessions: false,
+        includeRuntimes: false,
+        includeCredentials: false,
+        includeSourceMaps: true,
+        includeBackups: false,
+      },
+      outPath: path.join(ctx.store.dirs.exports, 'real.dshpkg'),
+      tool: { name: 'dsh-portable', version: '0.0.0-test' },
+      source: {
+        hostname: 'h',
+        platform: process.platform,
+        arch: process.arch,
+        node: process.version,
+        dshHome: ctx.home,
+        profile: 'desktop',
+        dshVersion: '',
+      },
+    });
+    const response = await fetch(ctx.base + '/artifacts/meta?artifactId=exports:real.dshpkg');
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.manifest.format, 'dsh-portable/1');
+    assert.equal(body.manifest.source.profile, 'desktop');
+    assert.ok(Array.isArray(body.roots), 'roots must be a list of what the package carries');
+    assert.equal(body.roots[0].id, 'profile');
   } finally {
     await ctx.close();
   }

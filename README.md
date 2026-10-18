@@ -169,7 +169,7 @@ Path rewriting is deliberately narrow: only `profiles/<p>/cordis.patch.yml`, `co
 ## Development
 
 ```bash
-npm test          # 40 tests: tar, archive, installer, jobs, routes, share
+npm test          # 42 tests: tar, archive, installer, jobs, routes, share, inspect
 npm run check     # syntax check + import smoke test
 npm run sync      # copy this package into a profile's node_modules for live testing
 npm run verify    # release gate: version consistency, files manifest, tests

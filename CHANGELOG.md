@@ -2,6 +2,18 @@
 
 本文件记录 dsh-portable 的所有重要变更，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## 0.1.2 — 2026-10-18
+
+修两个只在真机上才会撞到的读取缺陷：包内 manifest 被多包了一层，导致「查看包」和「包元信息」两个入口都拿不到 roots。无 API／包格式变更，`dsh-portable/1` 与 0.1.0／0.1.1 互通。
+
+### 修复
+
+- **`portable_inspect` 与 `GET /artifacts/meta` 都无法列出包内根目录**：`readManifest()` 返回的是 `{ manifest, raw }`，两处调用点却把整个返回值当成 manifest 用，于是 `manifest.roots` 为 `undefined`，模型工具直接抛 `Cannot read properties of undefined (reading 'map')`，HTTP 入口则把 `raw`（整份 manifest 原文）多包一层返回。现在两处都显式取 `.manifest`，并让 `inspectPackage` 在缺少 manifest 时报可读错误（`lib/tools.mjs`、`lib/routes.mjs`）。
+- **元信息响应补 `roots`**：`GET /artifacts/meta` 现在除 `manifest` 外再返回拍平后的 `roots`（`{id, logical, files, bytes}`），与面板和模型工具用同一份形状。
+
+### 测试
+
+- 新增 2 项：`test/inspect.test.mjs` 用真包跑 `createTools().inspectPackage`（断言 roots 是数组而不是 worker 包装对象）、`test/routes.test.mjs` 用 `writePackage` 造真包验证 `/artifacts/meta`。全量 42 项。
 ## 0.1.1 — 2026-10-18
 
 修一个会把面板变成「能看不能点」的安装陷阱，并把那种状态下甩给用户的裸状态码换成人话。无 API 变更、无包格式变更，`dsh-portable/1` 与 0.1.0 互通。

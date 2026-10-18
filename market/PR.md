@@ -34,7 +34,7 @@ dsh-config-manager, also on this list, backs up and moves configuration — sett
 
 ## Checks
 
-- npm test — 40 tests (tar including PAX padding across chunk boundaries, archive, installer, jobs, routes, share), all green.
+- npm test — 42 tests (tar including PAX padding across chunk boundaries, archive, installer, jobs, routes, share, inspect), all green.
 - npm run check — syntax check plus import smoke test.
 - Verified against a real DSH home: 13,774 entries and 20.7 MB exported in 2.8 s, then imported into a temporary home — 9 top-level items applied, 13,491 files, 3 files with 3 rewritten paths.
 - The repository declares dsh.bundle.patch and dsh.client, and ships cordis.patch.yml.

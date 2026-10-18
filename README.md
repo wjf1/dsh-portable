@@ -42,6 +42,8 @@ Anything not listed is never collected — there is no recursive "copy the whole
 dsh plugin --profile desktop add dsh-portable
 ```
 
+The plugin has to be registered in the profile's own `package.json` — under `dependencies` **and** `dsh.profile.bundles`. Copying the package directory into `profiles/<profile>/node_modules` by hand looks like it works, until that profile runs `npm install` again: npm treats an undeclared package as extraneous and deletes it, and from then on the panel still renders its cards while every request answers `404`. `dsh plugin add` (or `npm install dsh-portable` inside the profile) writes both halves.
+
 Then open **DSH settings → Portable Migration** (便携迁移). The panel is registered at `settings.section` with order 70, and is bilingual (zh/en) automatically.
 
 Nothing is written to the DSH home until you press a button.
@@ -185,7 +187,7 @@ The plugin has **no build step**: `index.js` (host), `lib/client.js` (browser bu
 
 - Session logs are opt-in because they contain conversation content.
 - A package is a tar: it is not encrypted and not signed. Put it on encrypted media if it contains credentials.
-- Import merges or replaces whole top-level roots; there is no per-file selector in v0.1.0.
+- Import merges or replaces whole top-level roots; there is no per-file selector in v0.1.x.
 - Symlinks that point outside the DSH home are packaged as links but will fail to be recreated on Windows without developer mode; that failure is a warning, not an abort.
 
 ## License

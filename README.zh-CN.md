@@ -42,7 +42,9 @@ dsh-portable 三件事一起解决：把白名单内的根打成单个自描述�
 dsh plugin --profile desktop add dsh-portable
 ```
 
-装完打开 **DSH 设置 → 便携迁移**。设置页区块注册在 `settings.section`、顺序 70，中英文随宿主语言自动切换。
+插件必须登记在 profile 自己的 `package.json` 里 —— `dependencies` **和** `dsh.profile.bundles` 两处都要。把包目录手工拷进 `profiles/<profile>/node_modules` 看起来能跑，但该 profile 下次执行 `npm install` 时，npm 会把没声明的包当 extraneous 删掉；那之后面板照常渲染卡片，但每个请求都回 `404`。`dsh plugin add`（或在 profile 里 `npm install dsh-portable`）会把这两处一起写好。
+
+然后打开 **DSH 设置 → 便携迁移**。设置页区块注册在 `settings.section`、顺序 70，中英文随宿主语言自动切换。
 
 不按按钮就什么都不会写进 DSH 主目录。
 
@@ -185,7 +187,7 @@ npm run verify    # 发布门禁：版本一致、文件清单、测试
 
 - 会话日志默认不进包，因为里面有对话内容。
 - 包是 tar，不加密也不签名；含凭据时请放在加密介质上。
-- 导入只能按顶层根整体 merge 或 replace，v0.1.0 没有单文件选择器。
+- 导入只能按顶层根整体 merge 或 replace，v0.1.x 没有单文件选择器。
 - 指向 DSH 主目录之外的符号链接会被打进包，但在 Windows 上没有开发者模式时无法重建 —— 这种情况记 warning，不中断导入。
 
 ## 许可

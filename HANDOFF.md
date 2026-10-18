@@ -84,7 +84,7 @@ dsh-portable/
 
 按优先级：
 
-1. **发布（阻塞中，需要用户确认对外动作）**：`git init` → 建 GitHub 仓库 `wjf1/dsh-portable` → push → `npm publish` → 向 `awesome-dsh-plugin` 提交条目。
+1. **发布进度**：仓库已建并推送（<https://github.com/wjf1/dsh-portable>，main，topic：dsh-plugin / deepseek-harness / migration / backup）。**剩余阻塞 = npm 登录**：本机无任何 npm 凭据（`~/.npmrc` 只有 `prefix=E:\OpenCode`，无 token、无环境变量），`npm publish` 报 `ENEEDAUTH`。需人工执行 `npm login`（或提供 automation token 写进 `~/.npmrc` 的 `//registry.npmjs.org/:_authToken`）才能发布；包名 `dsh-portable` 在 npm 上仍是空闲（404）。发布后再推 `v0.1.0` tag 并提市场 PR（条目文件已备好在 `market/`）。
 2. **截图**：`README` 目前没有界面截图（本机浏览器工具不可用，无法自动截图）。上架前应人工截 3 张：导出卡片、导入预览、分享链接。
 3. **性能**：`skills-disabled` 在本机占 44.6 MB（整包 86%）。可考虑"默认排除已被禁用技能"的开关。
 4. **加密**：当前包是明文 tar。凭据入包时应支持口令加密（AES-256-GCM + scrypt）。
@@ -104,3 +104,7 @@ dsh-portable/
 - **市场是策展清单**：`dshmarket` 从 `https://awesome-dsh-plugin.com/plugins.json` 读目录，条目来自 GitHub 仓库 `awesome-dsh-plugin/awesome-dsh-plugin`；上架是提 PR，不是自己上传。环境变量 `DSHM_REGISTRY_URL` 只能在进程级覆盖。
 - **本机 gh 账号是 `wjf1`**（不是 `XINY11451`，历史 package.json 里那个是错的，已改）。
 - **破坏性动作**：本机 `danger-full-access` 且无审批弹窗；删除/覆盖前先打印解析后的绝对路径，优先 move 到 `_trash_<时间戳>`。
+- **git 推送不能走本机代理**：全局 `git config http.proxy = http://127.0.0.1:7900` 会让 GitHub 报 `schannel: failed to receive handshake, SSL/TLS connection failed`；推送要用 `git -c http.proxy= push`（仓库已设 `http.proxy=""` 本地覆盖）。npm 同理：registry.npmjs.org 直连可用（`NO_PROXY` 已含 localhost），不要给 npm 配代理。
+- **默认分支**：本机 `git init` 默认 `master`，已 `git branch -m main`，CI 与文档都按 main。
+- **手工装插件（本机无 `dsh` CLI）**：把包复制到 `<DSH_HOME>/profiles/<profile>/node_modules/<包名>`，再把包名追加进该 profile `package.json` 的 `dsh.profile.bundles`，靠 watcher 热加载，**不需要重启 DSH**（重启会杀掉当前会话的 GUI）。
+- **验"插件是否真加载"**：宿主对**已注册路由**统一回 403 `refused by the host request gate`（未登录/不受信 origin），未注册路径回 404。所以 `/dsh-portable/api/status` 从 404 变 403 就是路由已挂载的证据；另可看副作用目录 `<DSH_HOME>/dsh-portable/{exports,uploads}` 是否被 apply 创建。想拿 200 必须在带登录 cookie 的浏览器页面里请求。

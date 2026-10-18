@@ -35,13 +35,14 @@ gh repo edit wjf1/dsh-portable --add-topic dsh-plugin --add-topic deepseek-harne
 
 ## 2. npm 发包
 
-npm 不读系统代理，本机需先单独配置（一次性）：
+**不要给 npm 配代理**（这条是本机实测结论，与早期文档相反）：`registry.npmjs.org` 直连正常，而本机代理 `http://127.0.0.1:7900` 会让 TLS 握手失败（git 侧同样报 `schannel: failed to receive handshake`）。保持 `npm config get proxy` = `null`，直接登录即可：
 
 ```powershell
-npm config set proxy http://127.0.0.1:7900
-npm config set https-proxy http://127.0.0.1:7900
-npm login
+npm login            # 交互式，浏览器/OTP 完成授权
+npm whoami           # 应回 wjf1
 ```
+
+> 当前状态（2026-10-18）：本机**没有任何 npm 凭据**——`~/.npmrc` 只有 `prefix=E:\OpenCode`，无 token、无 `NPM_TOKEN` 环境变量，`npm publish` 报 `ENEEDAUTH`。发布前必须先完成上面两步，或把 automation token 写进 `//registry.npmjs.org/:_authToken=...`。
 
 ```powershell
 npm pack --dry-run        # 核对包里到底有哪些文件
@@ -73,8 +74,8 @@ Release 标题必须与 tag subject **逐字一致**：`v0.1.0: 首个版本：D
 | `package.json` 声明 `dsh.bundle.patch` | ✅ `./cordis.patch.yml` |
 | 仓库根有 `cordis.patch.yml`（`- insert: - id/name`） | ✅ |
 | 仓库有真实可用代码，非占位 | ✅ 40 项测试 |
-| 仓库创建满 1 天 | ⏳ 建仓后次日再投 |
-| 仓库加 `dsh-plugin` topic | ⏳ 建仓时加 |
+| 仓库创建满 1 天 | ⏳ 2026-10-18 建仓，次日起可投 |
+| 仓库加 `dsh-plugin` topic | ✅ 已加（dsh-plugin / deepseek-harness / migration / backup） |
 | 描述真实、无营销词 | ✅ 见 `market/data/plugins/wjf1__dsh-portable.yml` |
 
 > 最常见的被拒原因是**只声明了 `dsh.client`**——那样无法用 `dsh plugin add` 安装。本插件两样都有。

@@ -162,5 +162,20 @@ dsh plugin --profile desktop add dsh-portable
 5. 新包上线后立刻 `npm install` 可能因缓存报 `ETARGET`，加 `--prefer-online`。
 6. `git push` 走全局代理会 `schannel` 握手失败，用 `git -c http.proxy= push`。
 
+## 8. 0.1.1 实际发布记录（2026-10-18）
+
+| 项目 | 值 |
+| --- | --- |
+| npm 包 | <https://www.npmjs.com/package/dsh-portable> · 0.1.1 · 24 文件 / ~192 KB 解包 · shasum `660369b0007256a5d309f2705b6a980472a01254` |
+| GitHub Release | <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.1>，标题 `v0.1.1: 修复面板 404 提示与安装依赖登记`（与 tag subject 逐字一致） |
+| CI | release.yml 全绿（run 39103118643），这次真正执行了 `npm publish`：`+ dsh-portable@0.1.1`；ci.yml（main）同时全绿 |
+| 传播延迟 | registry 元数据约 1 分钟后才出现 0.1.1，在此之前 `npm view dsh-portable@0.1.1` 报 `E404 No match found for version 0.1.1`，与 0.1.0 时一致 |
+| 本机集成 | `<DSH_HOME>/profiles/desktop` 内 `npm install dsh-portable@0.1.1 --legacy-peer-deps` 成功（`dependencies` 记为 `^0.1.1`） |
+
+**这次学到的**：
+
+7. **在 profile 里手工拷插件目录会被下次 `npm install` 清掉**：npm 把未在 `dependencies` 声明的目录当 extraneous 删除（这次 install 一次删了 6 个这样的包）。表现极具误导性 —— 设置页卡片照常渲染，但每个请求都回 `404`。装插件必须 `npm install <pkg> --legacy-peer-deps`（profile 有宿主导入的 peer，直接装会 `ERESOLVE`）或 `dsh plugin add`。
+8. **bundle 插件在运行中的进程里热挂载**：往 `<profile>/cordis.patch.yml` 追加 `- id: mkt-<包名>` + `name: <包名>` 两行即可（loader 十几秒内装好，路由从 404 变 403 就是证据）；**id 不能与 bundle 层插入的 id 相同**，同 id 会导致 DSH 启动硬失败；重启后它会变成第二份实例，重启前必须删掉。
+
 **后续可选升级**：改用 **Trusted Publishing（OIDC）**——在 npm 包设置里绑定本仓库与 `release.yml`，工作流加 `permissions: id-token: write` 后 `npm publish` 可免任何 token；那样 `NPM_TOKEN` secret 即可删除。
 

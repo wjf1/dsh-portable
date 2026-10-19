@@ -2,6 +2,11 @@
 
 本文件记录 dsh-portable 的所有重要变更，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## 未发布 — 文档与截图
+
+- 新增两张已脱敏的面板截图：`assets/panel-export.png`（导出卡片 + 包列表）、`assets/panel-import-share.png`（上传 / 导入 / 局域网分享 / 备份）。脱敏处理：主目录路径里的用户名改为 `you`，分享链接的内网 IP、端口与 32 位 token 换成示例值。双语 README 各加「界面截图 / Screenshots」小节，仓库根新增 `screenshots.json` 声明这两张图，供插件市场详情页展示。
+- `package.json` 的 `files` 加入 `assets`：**下一次发版起** npm 页面里的 README 截图才不会再 404（已发布的 0.1.3 包内不含图片）。
+
 ## 0.1.3 — 2026-10-18
 
 修一个只在「同机同主目录」导入时才会触发的崩溃：安装其实已经成功，但 bootstrap CLI 在打印结果时把 `null` 当对象读，直接抛 `TypeError`。无 API／包格式变更，`dsh-portable/1` 与 0.1.x 互通。

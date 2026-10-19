@@ -111,7 +111,7 @@ dsh-portable/
 
 1. ~~重启 DSH 收尾集成~~（已完成 2026-10-18 21:33）：临时热挂载条目 `mkt-dsh-portable` 已从 `<profile>/cordis.patch.yml` 删除并备份为 `.bak-20261018-restart`，重启后由 bundle 层正常加载（新端口 52803，`/dsh-portable/api/status` 回 403 = 路由已挂载）。
 2. ~~市场 PR~~（已提交 2026-10-19 22:33）：PR [awesome-dsh-plugin#8129](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/8129)「Add wjf1/dsh-portable」，仅新增 `data/plugins/wjf1__dsh-portable.yml`（+6 行，0 删除），CI 全绿（stale-fork guard、awesome-lint、READMEs/data 一致性、build 均 success），现在等维护者评审合并。**注意**：本机 git HTTPS 直连克隆会被重置（`curl 56 Recv failure`），实际提交走的是 GitHub REST API（`gh api` 建 ref + PUT contents + `gh pr create`）；后续同步 fork 也优先走 API 或 `git -c http.proxy=`。
-3. **截图**：`README` 目前没有界面截图（本机浏览器工具不可用，无法自动截图）。上架前应人工截 3 张：导出卡片、导入预览、分享链接。
+3. ~~截图~~（已完成 2026-10-19）：两张面板截图已脱敏并入仓 —— `assets/panel-export.png`（导出卡片 + 包列表）与 `assets/panel-import-share.png`（上传 / 导入 / 局域网分享 / 备份）。脱敏点：图 B 的主目录 `C:\Users\admin\.dsh` 已改为 `C:\Users\you\.dsh`；图 A 的分享链接真实内网 IP `192.168.0.1`、端口 `60571` 与 32 位 token 已整体替换为示例值（`http://192.168.1.10:60571/d/` + 32 个 `0`）。同时新增仓库根 `screenshots.json`（2 张相对路径，市场详情页按此展示），双语 README 各加「界面截图 / Screenshots」小节。原计划 3 张里的「导入预览」「分享链接」由含导入与分享的同一张图覆盖，不再单拆。
 4. **性能**：`skills-disabled` 在本机占 44.6 MB（整包 86%）。可考虑"默认排除已被禁用技能"的开关。
 5. **加密**：当前包是明文 tar。凭据入包时应支持口令加密（AES-256-GCM + scrypt）。
 6. **单文件选择器**：v0.1.x 只能按顶层根整体导入，后续可支持勾选具体子路径。

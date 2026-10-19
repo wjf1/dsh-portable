@@ -59,6 +59,14 @@ dsh plugin --profile desktop add dsh-portable
 5. **局域网分享** —— 把包发布成一次性下载链接（`http://<内网IP>:<端口>/d/<token>`）。默认 **1 次下载、60 分钟**，支持 Range/HEAD，过期或下完返回 410。无中继、无云端、无账号。
 6. **备份** —— 导入前自动生成的备份（`<DSH_HOME>/portable-backups/<stamp>`），保留最近 5 份。
 
+## 界面截图
+
+截自 DSH 设置面板；图中的主目录用户名与局域网分享链接均为示例值。
+
+![导出卡片与包列表](assets/panel-export.png)
+
+![上传、导入、局域网分享与备份](assets/panel-import-share.png)
+
 ## HTTP API
 
 前缀：`/dsh-portable/api`。除下载路由与上传流式路由外，响应都是 JSON。鉴权复用宿主的 `connection.requestRejection`（cookie + 可信来源），该服务不存在时降级为仅回环地址可访问。

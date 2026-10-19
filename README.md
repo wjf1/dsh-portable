@@ -59,6 +59,14 @@ Six cards:
 5. **LAN share** — publish a package as a one-shot download link (`http://<lan-ip>:<port>/d/<token>`). Defaults: **1 download, 60 minutes**, Range/HEAD supported, 410 on expiry or exhaustion. No relay, no cloud, no account.
 6. **Backups** — the automatic pre-install backups (`<DSH_HOME>/portable-backups/<stamp>`), newest 5 kept.
 
+## Screenshots
+
+Taken from the DSH settings panel. The DSH home path and the LAN share link in these images are placeholders.
+
+![Export card and package list](assets/panel-export.png)
+
+![Upload, import, LAN share and backups](assets/panel-import-share.png)
+
 ## HTTP API
 
 Base: `/dsh-portable/api`. All responses are JSON except the download route and the uploaded-file streaming route. Authentication reuses the host's `connection.requestRejection` fence (cookie + trusted origin), and falls back to a loopback-only check when that service is absent.

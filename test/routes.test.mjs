@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -318,6 +318,65 @@ test('download refuses an artifact id that tries to leave the store', async () =
     const response = await fetch(ctx.base + '/artifacts/download?artifactId=exports:..%2F..%2Fsecrets.yaml');
     assert.equal(response.status, 400);
     assert.equal((await response.json()).code, 'BAD_ARTIFACT');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('a backup restores over the live files and keeps what it replaced', async () => {
+  const ctx = await harness();
+  try {
+    const live = path.join(ctx.home, 'profiles', 'desktop', 'cordis.patch.yml');
+    const backupDir = path.join(ctx.home, 'portable-backups', '20261019-120000', 'profiles', 'desktop');
+    await mkdir(backupDir, { recursive: true });
+    await writeFile(live, 'live\n');
+    await writeFile(path.join(backupDir, 'cordis.patch.yml'), 'from-backup\n');
+
+    const response = await fetch(ctx.base + '/backups/restore', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ stamp: '20261019-120000' }),
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.deepEqual(body.restored, ['profiles/desktop/cordis.patch.yml']);
+    assert.equal(await readFile(live, 'utf8'), 'from-backup\n');
+
+    // What the restore overwrote is kept under its own stamp, one restore away.
+    const preRoot = path.join(ctx.home, 'portable-backups');
+    const pre = (await readdir(preRoot)).find((name) => name.endsWith('-pre-restore'));
+    assert.notEqual(pre, undefined);
+    assert.equal(await readFile(path.join(preRoot, pre, 'profiles', 'desktop', 'cordis.patch.yml'), 'utf8'), 'live\n');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('restoring a backup that does not exist reports it', async () => {
+  const ctx = await harness();
+  try {
+    const response = await fetch(ctx.base + '/backups/restore', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ stamp: '20200101-000000' }),
+    });
+    assert.equal(response.status, 404);
+    assert.equal((await response.json()).code, 'NOT_FOUND');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('a backup stamp cannot point outside the backup store', async () => {
+  const ctx = await harness();
+  try {
+    const response = await fetch(ctx.base + '/backups/restore', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ stamp: '../profiles' }),
+    });
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).code, 'BAD_STAMP');
   } finally {
     await ctx.close();
   }

@@ -53,11 +53,11 @@ dsh plugin --profile desktop add dsh-portable
 六个卡片区：
 
 1. **导出** —— 勾选可选根、给文件起名、点导出。打包跑在 worker 线程里；进度条实时显示条目数，20 MB / 14 000 条目的包约 3 秒。
-2. **包列表** —— `<DSH_HOME>/dsh-portable/exports` 下的所有 `.dshpkg`，显示大小、条目数、manifest 摘要，按钮为 下载 / 导入 / 分享 / 删除（删除需二次确认）。**下载**把包直接流给浏览器存盘，方便用 U 盘或文件传输拷到另一台机器——局域网分享只在两台机器同网时可用。
-3. **上传** —— 选一个 `.dshpkg`，流式落盘（先写 `.part` 再改名），2 GB 的包也不会进内存。
-4. **导入** —— 选 merge 或 replace，**先预览**（零写入），再点导入（显式确认）。结果会列出落地项、被重写的文件、备份位置与 warning。
-5. **局域网分享** —— 把包发布成一次性下载链接（`http://<内网IP>:<端口>/d/<token>`）。默认 **1 次下载、60 分钟**，支持 Range/HEAD，过期或下完返回 410。无中继、无云端、无账号。
-6. **备份** —— 导入前自动生成的备份（`<DSH_HOME>/portable-backups/<stamp>`），保留最近 5 份。
+2. **包列表** —— `<DSH_HOME>/dsh-portable/exports` 下的所有 `.dshpkg`，显示大小、修改时间，按钮为 选择 / 下载 / 分享 / 删除（删除需二次确认）。**选择**把包标记给下面的导入卡片；**下载**把包直接流给浏览器存盘，方便用 U 盘或文件传输拷到另一台机器——局域网分享只在两台机器同网时可用。
+3. **上传** —— 选一个 `.dshpkg`，流式落盘（先写 `.part` 再改名），带百分比进度，2 GB 的包也不会进内存。
+4. **导入** —— 选 merge 或 replace（当前选中项高亮），**先预览**（零写入），再点「执行导入」，此时会先弹出内联确认块，确认后才真正写入。结果以键值表格呈现：落地项、被重写的路径数、备份目录与 warning。
+5. **局域网分享** —— 把包发布成一次性下载链接（`http://<内网IP>:<端口>/d/<token>`）。默认 **1 次下载、60 分钟**，支持 Range/HEAD，过期或下完返回 410。**复制**会把链接写进剪贴板，且只有真的写成功才显示「已复制」（纯 HTTP 来源下退回 textarea 方案）。无中继、无云端、无账号。
+6. **备份** —— 导入前自动生成的备份（`<DSH_HOME>/portable-backups/<stamp>`），保留最近 5 份。每份都有**恢复**按钮：把该备份里的文件写回主目录，写回前会先把当前版本另存到 `<stamp>-pre-restore`。
 
 ## 界面截图
 
@@ -87,6 +87,7 @@ dsh plugin --profile desktop add dsh-portable
 | POST | `/import/preview` | 两阶段安装第一阶段（零写入） |
 | POST | `/import` | 两阶段安装第二阶段（必须 `confirm:true`） |
 | GET | `/backups` | 自动备份列表 |
+| POST | `/backups/restore` | 把某份备份写回主目录（写回前先另存当前文件） |
 | POST | `/share` | 生成一次性局域网下载链接 |
 | GET | `/share` | 列出有效链接 |
 | POST | `/share/remove` | 撤销链接 |
@@ -178,7 +179,7 @@ hooks/hooks.json
 ## 开发
 
 ```bash
-npm test          # 43 项：tar、archive、installer、jobs、routes、share、inspect
+npm test          # 49 项：tar、archive、installer、jobs、routes、share、inspect
 npm run check     # 语法检查 + import 冒烟
 npm run sync      # 把本包拷进某个 profile 的 node_modules 做真机联调
 npm run verify    # 发布门禁：版本一致、文件清单、测试

@@ -1,7 +1,7 @@
 # HANDOFF — dsh-portable 接力开发文档
 
 > 新会话接手：先读本文件，再读 `README.md`（行为契约）与 `CHANGELOG.md`（当前版本做了什么），最后才看代码。
-> 最后更新：2026-10-19 · 版本 0.1.4
+> 最后更新：2026-10-19 · 版本 0.1.5
 
 ---
 
@@ -11,14 +11,14 @@
 
 **解决的问题**：DSH 的 profile 是"配置 + 带 node_modules 的插件 + 技能 + hooks + 任务板"的集合，且配置里写死本机绝对路径与 profile 名。换机时直接复制目录会导致插件路径失效，而插件安装依赖联网 pnpm，在内网机上根本不可行。
 
-**当前状态（0.1.4，可交付）**：
+**当前状态（0.1.5，可交付）**：
 
 | 维度 | 状态 |
 | --- | --- |
-| 功能完整度 | 导出 / 下载到本机 / 预览 / 导入（merge、replace）/ 上传 / 局域网分享 / 备份 / 四个模型工具 / 设置页面板 —— 全部落地 |
-| 测试 | `npm test` 46 项全绿（tar 11、archive 5、installer 6、jobs 2、routes 15、share 6、inspect 1） |
+| 功能完整度 | 导出 / 下载到本机 / 预览 / 导入（merge、replace，带二次确认）/ 上传（百分比）/ 局域网分享 / 备份（可恢复）/ 四个模型工具 / 设置页面板 —— 全部落地 |
+| 测试 | `npm test` 49 项全绿（tar 11、archive 5、installer 6、jobs 2、routes 18、share 6、inspect 1） |
 | 真实数据验证 | 对本机 `C:\\Users\\admin\\.dsh` 真导出：20 664 511 字节 / 13 774 条目 / 2.8 秒；再对临时 home 真安装：9 个顶层项全部落地、13491 文件、3 个文件 3 处路径被重写 |
-| 发布状态 | **已发布 0.1.0 / 0.1.1 / 0.1.2 / 0.1.3 / 0.1.4**：0.1.4（新增「下载」按钮与 `GET /artifacts/download` 路由，46 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.4>，tag 触发 release.yml 自动 npm publish）· 0.1.3（24 文件 / shasum `6dd21365…` / 200529 B 解包，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.3>，ci + release 全绿，本机 profile 已升到 `^0.1.3`）· 0.1.2（24 文件 / shasum `6d1db122…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.2>，ci + release 全绿，本机 profile 已升到 `^0.1.2`）· 0.1.1（24 文件 / shasum `660369b0…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.1>，release.yml run 39103118643 真跑 npm publish）· 0.1.0 详情：npm <https://www.npmjs.com/package/dsh-portable>（24 文件 / 60.2 kB / shasum `1684d7b8…`）、GitHub Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.0>、tag `v0.1.0`；线上安装 + `import('dsh-portable')` 冒烟通过 |
+| 发布状态 | **已发布 0.1.0 / 0.1.1 / 0.1.2 / 0.1.3 / 0.1.4 / 0.1.5**：0.1.5（面板可用性修复：备份恢复、导入二次确认、上传进度、真正写剪贴板、导入结果表格化、凭据警示，49 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.5>，tag 触发 release.yml 自动 npm publish）· 0.1.4（新增「下载」按钮与 `GET /artifacts/download` 路由，46 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.4>，tag 触发 release.yml 自动 npm publish）· 0.1.3（24 文件 / shasum `6dd21365…` / 200529 B 解包，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.3>，ci + release 全绿，本机 profile 已升到 `^0.1.3`）· 0.1.2（24 文件 / shasum `6d1db122…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.2>，ci + release 全绿，本机 profile 已升到 `^0.1.2`）· 0.1.1（24 文件 / shasum `660369b0…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.1>，release.yml run 39103118643 真跑 npm publish）· 0.1.0 详情：npm <https://www.npmjs.com/package/dsh-portable>（24 文件 / 60.2 kB / shasum `1684d7b8…`）、GitHub Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.0>、tag `v0.1.0`；线上安装 + `import('dsh-portable')` 冒烟通过 |
 | 本机集成 | desktop profile 里已用 `npm install dsh-portable --legacy-peer-deps` 装好（`dependencies` 有记录、`dsh.profile.bundles` 有条目），面板在 设置 → 便携迁移。**2026-10-18 21:33 已按计划重启收尾**：临时热挂载条目 `mkt-dsh-portable` 已从 `<profile>/cordis.patch.yml` 删除（备份 `.bak-20261018-restart`），重启后由 bundle 层正式加载一份实例，`/dsh-portable/api/status` 回 403（身份闸）、未知路径 404，模型工具 `portable_export` 在真机上导出 118 MB / 14 841 条目成功。**踩过的坑**：早先手工拷贝的目录被同 profile 的 `npm install` 当 extraneous 清掉，插件静默消失、面板只剩 `HTTP 404` |
 | 上架路径 | 向 `awesome-dsh-plugin/awesome-dsh-plugin` 提交条目（材料在 `market/`，见 `PUBLISHING.md`）；仓库创建未满 1 天前投不进去 |
 
@@ -66,9 +66,11 @@ dsh-portable/
 - 配置解析顺序：`config.profile` → `ctx.get('profileContext').name` → `DSH_PROFILE` → `desktop`。
 - 对外服务一律 `ctx.get('svc')`，未在 `inject` 里声明的属性直接访问会抛。
 
-## 4. 最近一轮变更与交付成果（0.1.4）
+## 4. 最近一轮变更与交付成果（0.1.5）
 
-**0.1.4（当前）**：补上「把包交给另一台机器」的最后一环 —— 面板的包列表此前只有导入 / 分享 / 删除，没有下载，导出后的 `.dshpkg` 只能留在本机，U 盘 / 内网机这条最常用的离线路径走不通（分享是局域网临时链接，解决不了跨网）。新增两个入口：`GET /artifacts/download?id=`（`lib/routes.mjs`，按 artifact id 校验后以 `application/octet-stream` + `content-disposition: attachment` 流式发送，`pipeline` 直连磁盘，几百 MB 的包不进内存；缺包 404、越界 id 400）与包卡片的「下载」按钮（`lib/client.js`，`a[download]` 同源下载，自带宿主 cookie）。同时给 `sendJson` / `sendText` 加 `headersSent` / `destroyed` 防护、外层 catch 在响应头已发出时改 `response.destroy()`，避免下载中断触发 `ERR_HTTP_HEADERS_SENT` 盖掉真实错误。新增 3 项路由测试，全量 46 项；双语 README 的面板说明与 API 表同步；界面截图沿用 0.1.3 之后新增的 `assets/` 两张脱敏图，本版 `files` 已含 `assets`。
+**0.1.5（当前）**：按真机走查修面板可用性。分享按钮此前只 `setCopied(url)` 从未写剪贴板、复制按钮在剪贴板不可用时也标「已复制」——新增 `copyText()`（`navigator.clipboard` → `textarea` + `document.execCommand` 兜底，返回布尔），两处都以真实结果为准；「执行导入」原来一击落盘，改为内联确认块（写明 merge / replace，并提示 replace 会先移走旧项）；包列表的「导入」改名「选择」（它只做选中）；merge/replace 按钮由 `disabled` 改成 `active` + `aria-pressed`；上传改 XHR 带百分比；导出 / 上传 / 恢复完成都有 notice 行；导入结果由裸 `<pre>` 换成键值表格（applied / rewritten / backupDir / warnings）；勾选「凭据文件」时红字警示；删掉死键 `act.inspect`。新增 `POST /backups/restore`（`lib/routes.mjs`）：校验 `\d{8}-\d{6}` 形式的 stamp → 逐文件写回主目录，写回前把当前版本另存到 `<stamp>-pre-restore`（所以恢复也能反悔），备份里的 `replaced/` 不参与恢复；备份卡片每条加「恢复」+ 二次确认。测试 46 → 49（恢复写入并保留被覆盖文件、缺备份 404、stamp 越界 400 `BAD_STAMP`）。**踩坑**：`copyFile(source, aside)` 写成把备份文件拷进 pre-restore 目录，测试报 `Expected 'live' but got 'from-backup'`，应为 `copyFile(target, aside)`。
+
+**0.1.4**：补上「把包交给另一台机器」的最后一环 —— 面板的包列表此前只有导入 / 分享 / 删除，没有下载，导出后的 `.dshpkg` 只能留在本机，U 盘 / 内网机这条最常用的离线路径走不通（分享是局域网临时链接，解决不了跨网）。新增两个入口：`GET /artifacts/download?id=`（`lib/routes.mjs`，按 artifact id 校验后以 `application/octet-stream` + `content-disposition: attachment` 流式发送，`pipeline` 直连磁盘，几百 MB 的包不进内存；缺包 404、越界 id 400）与包卡片的「下载」按钮（`lib/client.js`，`a[download]` 同源下载，自带宿主 cookie）。同时给 `sendJson` / `sendText` 加 `headersSent` / `destroyed` 防护、外层 catch 在响应头已发出时改 `response.destroy()`，避免下载中断触发 `ERR_HTTP_HEADERS_SENT` 盖掉真实错误。新增 3 项路由测试，全量 46 项；双语 README 的面板说明与 API 表同步；界面截图沿用 0.1.3 之后新增的 `assets/` 两张脱敏图，本版 `files` 已含 `assets`。
 
 **0.1.3**：修「同机同主目录」导入的收尾崩溃 —— `lib/installer.mjs` 只在源 home ≠ 本机 home 时才做路径重写（否则 `report.rewrites` 为 `null`），而 `bootstrap/bootstrap.mjs` 无条件读 `result.rewrites.files.length`，于是在**文件已落盘之后**抛 `TypeError: Cannot read properties of null`，误导用户以为导入失败。改为分情况打印（有重写报「N 个文件 M 处路径」，没有时打印 `none (package was already built for <home>)`）；新增 1 项回归测试（同 home 既导出又导入，断言 `rewrites === null` 且文件照常落地），全量 43 项。同日空白 home 全链路手测通过：`bootstrap.mjs install` 输出 `applied AGENTS.md, hooks, profiles` + `rewrites 3 files, 1 paths`，新 home 里插件与 `cordis.patch.yml` 均按新 home 重写。
 
@@ -119,6 +121,7 @@ dsh-portable/
 6. **单文件选择器**：v0.1.x 只能按顶层根整体导入，后续可支持勾选具体子路径。
 7. **e2e 测试**：目前 installer 用临时目录 + fixture，缺"真实 profile 装完能被 DSH 启动"的验证。
 8. **下载的后续改进**（0.1.4 已落地主体）：当前 `GET /artifacts/download` 整文件流式发送，未实现 Range 断点续传，也没有面板内进度条——500 MB 以上的包只能看浏览器自己的下载提示。可复用分享路由里已有的 Range/HEAD 处理。
+9. **0.1.5 真机走查**：本轮改动只过了单元测试与语法检查，本机 profile 仍是 0.1.3；升级并重启 DSH 后按走查清单复测——分享真的进剪贴板、执行导入先弹确认、备份恢复能回滚、上传显示百分比、导入结果是表格而不是裸 JSON。
 
 ## 6. 关键避坑与运行约束
 
@@ -133,6 +136,7 @@ dsh-portable/
 - **刚发布的包 fetch 会命中旧缓存**：`npm install dsh-portable@0.1.0` 可能报 `ETARGET No matching version`（缓存里只有占位的 `0.0.0-stage`），加 `--prefer-online` 即可。新包首次上线时 registry 元数据里会短暂只有 `0.0.0-stage` 占位版本。
 - **本仓库 `git push` 必须绕过全局代理**：`http.proxy=http://127.0.0.1:7900` 会让 GitHub 握手失败（`schannel: failed to receive handshake`），用 `git -c http.proxy= push`（仓库内已设 `http.proxy ""`）。
 - **release.yml 的 tag 标题**：`actions/checkout` 可能把 annotated tag 落成轻量标签，`%(contents:subject)` 退化成提交信息。工作流已改为先 `git fetch --force --tags`，非 tag 对象时走 GitHub API 取 message；标题与 tag subject 不一致时用 `gh release edit --title` 手工纠正。
+- **CHANGELOG 顶段版本必须等于 package.json**：`scripts/verify-release.mjs` 会比对两者；纯文档提交若在顶部写「未发布」而版本号没动，CI 的 `node scripts/verify-release.mjs --skip-tests` 会直接失败（0.1.4 就红过一次）。改完文档先本地跑一次这个脚本再 push。
 - **Windows 长路径**：所有 fs 调用都过 `longPath()`（加 `\\?\` 前缀），否则深层 node_modules 会 `ENOENT`。
 - **符号链接**：Windows 无开发者模式时创建失败，必须降级为 warning，不能中断导入。
 - **真实 DSH 目录**：`app.asar` 是**文件**不是目录，PowerShell 无法进入；要读源码得用 `npx asar extract` 或直接看 `resources/app.asar.unpacked`。

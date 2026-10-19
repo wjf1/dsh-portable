@@ -110,7 +110,7 @@ dsh-portable/
 按优先级：
 
 1. ~~重启 DSH 收尾集成~~（已完成 2026-10-18 21:33）：临时热挂载条目 `mkt-dsh-portable` 已从 `<profile>/cordis.patch.yml` 删除并备份为 `.bak-20261018-restart`，重启后由 bundle 层正常加载（新端口 52803，`/dsh-portable/api/status` 回 403 = 路由已挂载）。
-2. **市场 PR（下一个动作）**：仓库 2026-10-18 创建，`awesome-dsh-plugin` 的 CI 要求仓库**创建满 1 天**，故 2026-10-19 起可投。步骤：fork → 只新增 `data/plugins/wjf1__dsh-portable.yml` → 开 PR（正文用 `market/PR.md`）→ 回复维护者。别手改 README（脚本生成）。
+2. ~~市场 PR~~（已提交 2026-10-19 22:33）：PR [awesome-dsh-plugin#8129](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/8129)「Add wjf1/dsh-portable」，仅新增 `data/plugins/wjf1__dsh-portable.yml`（+6 行，0 删除），CI 全绿（stale-fork guard、awesome-lint、READMEs/data 一致性、build 均 success），现在等维护者评审合并。**注意**：本机 git HTTPS 直连克隆会被重置（`curl 56 Recv failure`），实际提交走的是 GitHub REST API（`gh api` 建 ref + PUT contents + `gh pr create`）；后续同步 fork 也优先走 API 或 `git -c http.proxy=`。
 3. **截图**：`README` 目前没有界面截图（本机浏览器工具不可用，无法自动截图）。上架前应人工截 3 张：导出卡片、导入预览、分享链接。
 4. **性能**：`skills-disabled` 在本机占 44.6 MB（整包 86%）。可考虑"默认排除已被禁用技能"的开关。
 5. **加密**：当前包是明文 tar。凭据入包时应支持口令加密（AES-256-GCM + scrypt）。

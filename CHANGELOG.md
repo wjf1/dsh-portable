@@ -2,6 +2,23 @@
 
 本文件记录 dsh-portable 的所有重要变更，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## 0.1.6 — 2026-10-20
+
+0.1.5 的真机走查揪出两个让面板「看起来卡死」的缺陷：一个是自 0.1.0 就写错的终态判断，一个是剪贴板 API 挂起。
+
+### 修复
+
+- **导出/预览/导入的进度条永不收尾**（`lib/client.js` 的 `follow`）：后端任务终态是 `succeeded`（`lib/jobs.mjs` 第 83 行），前端却等 `done`，于是 `stopPolling()` 与 `setBusyJob(null)` 永不执行、`busy` 一直为真 —— 创建包、刷新、选择、分享、删除、执行导入全部禁用。本机导出 568.4 MB 后稳定复现。现在按 `succeeded` 收尾；`state.succeeded` 也补了 i18n 文案（此前直接显示英文枚举）。
+- **剪贴板写入可能永久挂起**：`copyText` 直接 `await navigator.clipboard.writeText`，在未聚焦或受限窗口里该 Promise 既不 resolve 也不 reject，按钮停在待定态。现在 1.5 秒超时后兜底到 `textarea` + `document.execCommand('copy')`。
+
+### 测试
+
+- 全量 49 项通过（本次只改客户端行为，未新增用例）。
+
+### 文档
+
+- HANDOFF 增加「job 终态是 `succeeded`，不是 `done`」的避坑条目。
+
 ## 0.1.5 — 2026-10-19
 
 按一次真机走查的结论修面板：功能都在，但「点了到底发生了什么」不清楚，还有两处会让人误判成功。

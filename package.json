@@ -1,6 +1,6 @@
 {
   "name": "dsh-portable",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Offline and online export/import for DeepSeek Harness: pack a whole working DSH home (profile, plugins with node_modules, skills, hooks, AGENTS.md, task boards) into one .dshpkg, restore it on another machine over a file, a URL, or a one-shot LAN share — no network and no pnpm install required on the target.",
   "type": "module",
   "main": "index.js",

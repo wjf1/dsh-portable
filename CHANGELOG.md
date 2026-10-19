@@ -2,10 +2,28 @@
 
 本文件记录 dsh-portable 的所有重要变更，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## 未发布 — 文档与截图
+## 0.1.4 — 2026-10-19
 
-- 新增两张已脱敏的面板截图：`assets/panel-export.png`（导出卡片 + 包列表）、`assets/panel-import-share.png`（上传 / 导入 / 局域网分享 / 备份）。脱敏处理：主目录路径里的用户名改为 `you`，分享链接的内网 IP、端口与 32 位 token 换成示例值。双语 README 各加「界面截图 / Screenshots」小节，仓库根新增 `screenshots.json` 声明这两张图，供插件市场详情页展示。
-- `package.json` 的 `files` 加入 `assets`：**下一次发版起** npm 页面里的 README 截图才不会再 404（已发布的 0.1.3 包内不含图片）。
+补上一条实际卡住换机流程的缺口：包能导出来，却没有任何入口把它交给浏览器存盘，U 盘 / 内网机这条离线路径走不通。
+
+### 新增
+
+- **包列表新增「下载」按钮**（`lib/client.js`）：每个 `.dshpkg` 旁边都有「下载」，浏览器按 `a[download]` 同源下载存盘，文件名沿用包名；悬停提示说明用途。
+- **新路由 `GET /artifacts/download?id=`**（`lib/routes.mjs`）：按 artifact id 校验（只认 `exports:` / `uploads:` 前缀，拒绝路径分隔符与 `..`），返回 `application/octet-stream` + `content-disposition: attachment` + `content-length`，用 `pipeline` 流式发送，几百 MB 的包也不会进内存。缺包回 404、越界 id 回 400，与其它 JSON 端点口径一致。
+
+### 修复
+
+- **流式响应之后不能再写 JSON**：`sendJson` / `sendText` 增加 `headersSent` / `destroyed` 防护，外层 catch 在响应头已经发出时改为 `response.destroy()`；否则下载中断（浏览器取消、磁盘错误）会触发 `ERR_HTTP_HEADERS_SENT` 覆盖真实错误。
+
+### 测试
+
+- 新增 3 项：下载正常路径（200、类型、`attachment; filename="trip.dshpkg"`、长度与正文一致）、包不存在（404 `NOT_FOUND`）、artifact id 越界（400 `BAD_ARTIFACT`）。全量 46 项。
+
+### 文档
+
+- 双语 README 的面板说明与 HTTP API 表补上「下载 / download」。
+- 两张已脱敏的面板截图并入仓库 `assets/`（导出卡片 + 包列表、上传 / 导入 / 局域网分享 / 备份），仓库根新增 `screenshots.json` 声明这两张图，供插件市场详情页展示；`package.json` 的 `files` 加入 `assets`，下一次发版起 npm 页面里的 README 截图才不会 404。
+- 脱敏说明：主目录路径里的用户名改为 `you`，分享链接的内网 IP、端口与 32 位 token 换成示例值。
 
 ## 0.1.3 — 2026-10-18
 

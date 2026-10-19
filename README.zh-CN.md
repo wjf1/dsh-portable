@@ -53,7 +53,7 @@ dsh plugin --profile desktop add dsh-portable
 六个卡片区：
 
 1. **导出** —— 勾选可选根、给文件起名、点导出。打包跑在 worker 线程里；进度条实时显示条目数，20 MB / 14 000 条目的包约 3 秒。
-2. **包列表** —— `<DSH_HOME>/dsh-portable/exports` 下的所有 `.dshpkg`，显示大小、条目数、manifest 摘要，按钮为 导入 / 分享 / 删除（删除需二次确认）。
+2. **包列表** —— `<DSH_HOME>/dsh-portable/exports` 下的所有 `.dshpkg`，显示大小、条目数、manifest 摘要，按钮为 下载 / 导入 / 分享 / 删除（删除需二次确认）。**下载**把包直接流给浏览器存盘，方便用 U 盘或文件传输拷到另一台机器——局域网分享只在两台机器同网时可用。
 3. **上传** —— 选一个 `.dshpkg`，流式落盘（先写 `.part` 再改名），2 GB 的包也不会进内存。
 4. **导入** —— 选 merge 或 replace，**先预览**（零写入），再点导入（显式确认）。结果会列出落地项、被重写的文件、备份位置与 warning。
 5. **局域网分享** —— 把包发布成一次性下载链接（`http://<内网IP>:<端口>/d/<token>`）。默认 **1 次下载、60 分钟**，支持 Range/HEAD，过期或下完返回 410。无中继、无云端、无账号。
@@ -81,6 +81,7 @@ dsh plugin --profile desktop add dsh-portable
 | POST | `/export` | 开始导出 |
 | GET | `/artifacts` | 可导入的包列表 |
 | GET | `/artifacts/meta?id=` | 单个包的 manifest |
+| GET | `/artifacts/download?id=` | 以附件形式把包流给浏览器（存到本机） |
 | POST | `/artifacts/delete` | 删除包（UI 里二次确认） |
 | PUT | `/upload/<name>` | 上传包，流式落盘 |
 | POST | `/import/preview` | 两阶段安装第一阶段（零写入） |

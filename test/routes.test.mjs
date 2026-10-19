@@ -284,3 +284,41 @@ test('artifact metadata returns the manifest, not the reader wrapper', async () 
     await ctx.close();
   }
 });
+
+test('download streams the package under a filename the browser can save', async () => {
+  const ctx = await harness();
+  try {
+    const payload = 'DSHPKG-payload-' + 'x'.repeat(120);
+    await writeFile(path.join(ctx.store.dirs.exports, 'trip.dshpkg'), payload);
+    const response = await fetch(ctx.base + '/artifacts/download?artifactId=' + encodeURIComponent('exports:trip.dshpkg'));
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('content-type'), 'application/octet-stream');
+    assert.match(response.headers.get('content-disposition'), /^attachment; filename="trip\.dshpkg"$/);
+    assert.equal(response.headers.get('content-length'), String(Buffer.byteLength(payload)));
+    assert.equal(await response.text(), payload);
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('download reports a missing package instead of answering with an empty file', async () => {
+  const ctx = await harness();
+  try {
+    const response = await fetch(ctx.base + '/artifacts/download?artifactId=exports:gone.dshpkg');
+    assert.equal(response.status, 404);
+    assert.equal((await response.json()).code, 'NOT_FOUND');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('download refuses an artifact id that tries to leave the store', async () => {
+  const ctx = await harness();
+  try {
+    const response = await fetch(ctx.base + '/artifacts/download?artifactId=exports:..%2F..%2Fsecrets.yaml');
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).code, 'BAD_ARTIFACT');
+  } finally {
+    await ctx.close();
+  }
+});

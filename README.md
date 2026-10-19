@@ -53,7 +53,7 @@ Nothing is written to the DSH home until you press a button.
 Six cards:
 
 1. **Export** — pick which optional roots to include, name the file, press Export. Packing runs in a worker thread; the progress bar streams entry counts, and a 20 MB package over ~14 000 entries takes about 3 seconds.
-2. **Packages** — every `.dshpkg` under `<DSH_HOME>/dsh-portable/exports`, with size, entry count, manifest summary, and buttons: Import / Share / Delete (delete asks for confirmation).
+2. **Packages** — every `.dshpkg` under `<DSH_HOME>/dsh-portable/exports`, with size, entry count, manifest summary, and buttons: Download / Import / Share / Delete (delete asks for confirmation). *Download* streams the package to the browser so it can be saved to disk and carried to another machine on a USB stick — the LAN share is only reachable while both machines are on the same network.
 3. **Upload** — drag or pick a `.dshpkg` and it is streamed to disk (`.part` then rename), so a 2 GB package never sits in memory.
 4. **Import** — choose merge or replace, press *Preview* first (zero writes), then *Import* (explicit confirmation). The result lists applied items, rewritten files, backup location and warnings.
 5. **LAN share** — publish a package as a one-shot download link (`http://<lan-ip>:<port>/d/<token>`). Defaults: **1 download, 60 minutes**, Range/HEAD supported, 410 on expiry or exhaustion. No relay, no cloud, no account.
@@ -81,6 +81,7 @@ Base: `/dsh-portable/api`. All responses are JSON except the download route and 
 | POST | `/export` | start an export |
 | GET | `/artifacts` | packages available for import |
 | GET | `/artifacts/meta?id=` | manifest of one package |
+| GET | `/artifacts/download?id=` | stream a package to the browser as an attachment (save it to disk) |
 | POST | `/artifacts/delete` | delete a package (confirmed in the UI) |
 | PUT | `/upload/<name>` | stream an uploaded package to disk |
 | POST | `/import/preview` | two-phase install, phase 1 (zero writes) |

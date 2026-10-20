@@ -1,7 +1,7 @@
 # HANDOFF — dsh-portable 接力开发文档
 
 > 新会话接手：先读本文件，再读 `README.md`（行为契约）与 `CHANGELOG.md`（当前版本做了什么），最后才看代码。
-> 最后更新：2026-10-20 · 版本 0.1.8
+> 最后更新：2026-10-20 · 版本 0.1.9
 
 ---
 
@@ -11,14 +11,14 @@
 
 **解决的问题**：DSH 的 profile 是"配置 + 带 node_modules 的插件 + 技能 + hooks + 任务板"的集合，且配置里写死本机绝对路径与 profile 名。换机时直接复制目录会导致插件路径失效，而插件安装依赖联网 pnpm，在内网机上根本不可行。
 
-**当前状态（0.1.8，可交付）**：
+**当前状态（0.1.9，可交付）**：
 
 | 维度 | 状态 |
 | --- | --- |
 | 功能完整度 | 导出（带百分比）/ 下载到本机 / 预览 / 导入（merge、replace，带二次确认与 package.json 合并）/ 上传（百分比）/ 局域网分享 / 备份（可恢复）/ 任务可取消 / 四个模型工具 / 设置页面板 —— 全部落地 |
 | 测试 | `npm test` 59 项全绿（tar 11、archive 5、installer 8、jobs 2、routes 24、share 8、inspect 1） |
 | 真实数据验证 | 对本机 `C:\\Users\\admin\\.dsh` 真导出：20 664 511 字节 / 13 774 条目 / 2.8 秒；再对临时 home 真安装：9 个顶层项全部落地、13491 文件、3 个文件 3 处路径被重写 |
-| 发布状态 | **已发布 0.1.0 / 0.1.1 / 0.1.2 / 0.1.3 / 0.1.4 / 0.1.5 / 0.1.6 / 0.1.7 / 0.1.8**：0.1.8（按同类问题审计清单逐项收口：`package.json` 合并真正接入 install 路径、备份恢复不再覆盖没有应急副本的文件、Range 完整区间才计数、`JOB_BUSY` 409、失败导入清理 staging、面板任务可取消 / 请求 60 秒超时 / 导出百分比 / 插件清单合并展示，59 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.8>，tag 触发 release.yml 自动 npm publish）· 0.1.7（修「预览变更没反应」：任务失败的错误改用 `refresh().finally(...)` 兜底显示，上传落盘前用 `readManifest` 校验、截断包直接 400 `BAD_ARCHIVE`，50 项测试全绿）· 0.1.6（真机走查修复：任务终态改用 `succeeded`，进度条不再不收尾导致整面板按钮永久禁用；剪贴板写入加 1.5 秒超时兜底，49 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.6>）· 0.1.5（面板可用性修复：备份恢复、导入二次确认、上传进度、真正写剪贴板、导入结果表格化、凭据警示，49 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.5>，tag 触发 release.yml 自动 npm publish）· 0.1.4（新增「下载」按钮与 `GET /artifacts/download` 路由，46 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.4>，tag 触发 release.yml 自动 npm publish）· 0.1.3（24 文件 / shasum `6dd21365…` / 200529 B 解包，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.3>，ci + release 全绿，本机 profile 已升到 `^0.1.3`）· 0.1.2（24 文件 / shasum `6d1db122…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.2>，ci + release 全绿，本机 profile 已升到 `^0.1.2`）· 0.1.1（24 文件 / shasum `660369b0…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.1>，release.yml run 39103118643 真跑 npm publish）· 0.1.0 详情：npm <https://www.npmjs.com/package/dsh-portable>（24 文件 / 60.2 kB / shasum `1684d7b8…`）、GitHub Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.0>、tag `v0.1.0`；线上安装 + `import('dsh-portable')` 冒烟通过 |
+| 发布状态 | **已发布 0.1.0 / 0.1.1 / 0.1.2 / 0.1.3 / 0.1.4 / 0.1.5 / 0.1.6 / 0.1.7 / 0.1.8 / 0.1.9**：0.1.9（补审计清单最后一项 P3-6：`notice` 成功提示 4 秒自动收起、`copyText` 超时计时器用 `try/finally` 释放，59 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.9>）· 0.1.8（按同类问题审计清单逐项收口：`package.json` 合并真正接入 install 路径、备份恢复不再覆盖没有应急副本的文件、Range 完整区间才计数、`JOB_BUSY` 409、失败导入清理 staging、面板任务可取消 / 请求 60 秒超时 / 导出百分比 / 插件清单合并展示，59 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.8>，tag 触发 release.yml 自动 npm publish）· 0.1.7（修「预览变更没反应」：任务失败的错误改用 `refresh().finally(...)` 兜底显示，上传落盘前用 `readManifest` 校验、截断包直接 400 `BAD_ARCHIVE`，50 项测试全绿）· 0.1.6（真机走查修复：任务终态改用 `succeeded`，进度条不再不收尾导致整面板按钮永久禁用；剪贴板写入加 1.5 秒超时兜底，49 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.6>）· 0.1.5（面板可用性修复：备份恢复、导入二次确认、上传进度、真正写剪贴板、导入结果表格化、凭据警示，49 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.5>，tag 触发 release.yml 自动 npm publish）· 0.1.4（新增「下载」按钮与 `GET /artifacts/download` 路由，46 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.4>，tag 触发 release.yml 自动 npm publish）· 0.1.3（24 文件 / shasum `6dd21365…` / 200529 B 解包，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.3>，ci + release 全绿，本机 profile 已升到 `^0.1.3`）· 0.1.2（24 文件 / shasum `6d1db122…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.2>，ci + release 全绿，本机 profile 已升到 `^0.1.2`）· 0.1.1（24 文件 / shasum `660369b0…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.1>，release.yml run 39103118643 真跑 npm publish）· 0.1.0 详情：npm <https://www.npmjs.com/package/dsh-portable>（24 文件 / 60.2 kB / shasum `1684d7b8…`）、GitHub Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.0>、tag `v0.1.0`；线上安装 + `import('dsh-portable')` 冒烟通过 |
 | 本机集成 | desktop profile 里已用 `npm install dsh-portable --legacy-peer-deps` 装好（`dependencies` 有记录、`dsh.profile.bundles` 有条目），面板在 设置 → 便携迁移。**2026-10-18 21:33 已按计划重启收尾**：临时热挂载条目 `mkt-dsh-portable` 已从 `<profile>/cordis.patch.yml` 删除（备份 `.bak-20261018-restart`），重启后由 bundle 层正式加载一份实例，`/dsh-portable/api/status` 回 403（身份闸）、未知路径 404，模型工具 `portable_export` 在真机上导出 118 MB / 14 841 条目成功。**踩过的坑**：早先手工拷贝的目录被同 profile 的 `npm install` 当 extraneous 清掉，插件静默消失、面板只剩 `HTTP 404` |
 | 上架路径 | 向 `awesome-dsh-plugin/awesome-dsh-plugin` 提交条目（材料在 `market/`，见 `PUBLISHING.md`）；仓库创建未满 1 天前投不进去 |
 
@@ -66,9 +66,11 @@ dsh-portable/
 - 配置解析顺序：`config.profile` → `ctx.get('profileContext').name` → `DSH_PROFILE` → `desktop`。
 - 对外服务一律 `ctx.get('svc')`，未在 `inject` 里声明的属性直接访问会抛。
 
-## 4. 最近一轮变更与交付成果（0.1.8）
+## 4. 最近一轮变更与交付成果（0.1.9）
 
-**0.1.8（当前）**：按「同类问题全项目审计」的 27 项清单逐项收口（P1 5 / P2 10 / P3 7 / 疑似 6）。关键的几条：`mergeProfilePackage` 从 0.1.0 起就写在 `lib/rewrite.mjs` 里，但 install 路径从未调用它（只调 `rewriteExtractedTree` 做路径替换），所以「按目标机现状合并 package.json」一直是文档宣称、代码没做——现在 `rewriteExtractedTree` 接收 `targetPackagePath` 并真正合并，结果进 `report.rewrites.merged` 并由面板显示；`/backups/restore` 的 pre-restore 拷贝失败此前被 `catch(() => {})` 吞掉后照样覆盖目标文件（现在失败项跳过，不覆盖没有应急副本的文件）；`jobs.dispose()` 无返回值导致 worker 退出不被等待（返回 `Promise.all`）；分享的 Range 请求此前一律不计数（浏览器发 `bytes=0-` 可无限下载，现在只认完整区间）；worker 未上报结果就退出会永久 running（现在 running/queued 状态下的任何退出都记 failed 并带退出码）。面板侧：`refresh` 成功不再清错误、上传改 XHR 带百分比与防重入、轮询防重叠、`call` 加 60 秒超时、JobBar 加取消按钮、导出进度补 `percent`、`report.rewrites.merged` 展示。边界与清理：delete / import 预检 / share remove 404、download 支持 HEAD、`keep:0` 真的清空普通快照且 `-pre-restore` 永不修剪、失败导入在 `finally` 里清 staging、`settings()` 优先 `profileContext.dshHome`、删掉 7 个死导出与 2 个死函数。测试 50 → 59（新增 9 项：删除 404、导入预检 404、下载 HEAD、JOB_BUSY 409、分享移除 404、/health 不暴露数量、完整 Range 计数、keep:0 与 -pre-restore、失败导入不留 staging）。
+**0.1.9（当前）**：补审计清单的最后一项 P3-6（纯前端计时器）。`notice` 成功提示（导出完成 / 上传完成 / 备份已恢复）原本会永久留在面板顶部，下一次操作的反馈会叠在旧提示下面；现在 4 秒自动收起，并在 `notice` 重置或组件卸载时清掉计时器。`copyText` 里 1.5 秒超时用的 `setTimeout` 在 `navigator.clipboard.writeText` 成功时不会释放，页面留下悬空计时器；现在用 `try/finally` 保证 `clearTimeout`。无 API 变更，`node --check` + 59 项测试全过。
+
+**0.1.8**：按「同类问题全项目审计」的 27 项清单逐项收口（P1 5 / P2 10 / P3 7 / 疑似 6）。关键的几条：`mergeProfilePackage` 从 0.1.0 起就写在 `lib/rewrite.mjs` 里，但 install 路径从未调用它（只调 `rewriteExtractedTree` 做路径替换），所以「按目标机现状合并 package.json」一直是文档宣称、代码没做——现在 `rewriteExtractedTree` 接收 `targetPackagePath` 并真正合并，结果进 `report.rewrites.merged` 并由面板显示；`/backups/restore` 的 pre-restore 拷贝失败此前被 `catch(() => {})` 吞掉后照样覆盖目标文件（现在失败项跳过，不覆盖没有应急副本的文件）；`jobs.dispose()` 无返回值导致 worker 退出不被等待（返回 `Promise.all`）；分享的 Range 请求此前一律不计数（浏览器发 `bytes=0-` 可无限下载，现在只认完整区间）；worker 未上报结果就退出会永久 running（现在 running/queued 状态下的任何退出都记 failed 并带退出码）。面板侧：`refresh` 成功不再清错误、上传改 XHR 带百分比与防重入、轮询防重叠、`call` 加 60 秒超时、JobBar 加取消按钮、导出进度补 `percent`、`report.rewrites.merged` 展示。边界与清理：delete / import 预检 / share remove 404、download 支持 HEAD、`keep:0` 真的清空普通快照且 `-pre-restore` 永不修剪、失败导入在 `finally` 里清 staging、`settings()` 优先 `profileContext.dshHome`、删掉 7 个死导出与 2 个死函数。测试 50 → 59（新增 9 项：删除 404、导入预检 404、下载 HEAD、JOB_BUSY 409、分享移除 404、/health 不暴露数量、完整 Range 计数、keep:0 与 -pre-restore、失败导入不留 staging）。
 
 **0.1.7**：真机反馈「预览变更点了没反应」。直接打 API 复现：`POST /import/preview` 回 200 并启动 job，但 job 在 763 毫秒后 `state=failed`、`error.message=unexpected end of file`（`Z_BUF_ERROR`，zlib 解压到一半没了）——列表里选中的那个 22.7 MB 包是截断的上传（同一份包的完整导出是 521.5 MB / 546850812 B）。可前端什么都没显示：`lib/client.js` 的 `follow` 在 failed 分支先 `setError(...)` 再 `void refresh()`，而 `refresh()` 成功时第 462 行 `setError(null)` 把刚设的错误清掉，错误只活一帧，面板看起来像没响应。修法：failed 分支改 `void refresh().finally(() => setError(message))`，错误稳定留在顶部。第二层修上传：`lib/routes.mjs` 的 `receiveUpload` 在 `rename(part, destination)` 前用 `readManifest(part)` 校验，读不出 manifest 就删掉临时文件并回 400 `BAD_ARCHIVE`，截断包再也进不了库。测试新增 1 项（截断包被拒且不落库），`upload` 用例改为上传真实包，全量 50 项通过。
 

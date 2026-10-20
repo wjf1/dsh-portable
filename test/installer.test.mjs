@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm, access, readFile as rf } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, readdir, rm, access, readFile as rf } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { writePackage } from '../lib/archive.mjs';
@@ -133,6 +133,51 @@ test('renames the profile when the target name differs', async () => {
   assert.equal(report.renamedProfile.to, 'work');
   assert.equal(await exists(path.join(target, 'profiles', 'work', 'package.json')), true);
   assert.equal(await exists(path.join(target, 'profiles', 'desktop')), false);
+
+  await rm(home, { recursive: true, force: true });
+  await rm(target, { recursive: true, force: true });
+});
+
+test('a failed import does not leave its staging directory behind', async () => {
+  const home = await makeSourceHome();
+  const file = await packageIt(home);
+  const bytes = await readFile(file);
+  const truncated = path.join(home, 'exports', 'truncated.dshpkg');
+  await writeFile(truncated, bytes.subarray(0, Math.floor(bytes.length / 2)));
+
+  const target = await mkdtemp(path.join(tmpdir(), 'dp-dst-'));
+  await assert.rejects(install({ filePath: truncated, dshHome: target }));
+
+  const stagingRoot = path.join(target, 'portable-staging');
+  if (await exists(stagingRoot)) {
+    // A broken package must not leave a half-extracted gigabyte behind.
+    assert.deepEqual(await readdir(stagingRoot), []);
+  }
+
+  await rm(home, { recursive: true, force: true });
+  await rm(target, { recursive: true, force: true });
+});
+
+test('a backup budget never prunes the pre-restore copies', async () => {
+  const home = await makeSourceHome();
+  const file = await packageIt(home);
+
+  const target = await mkdtemp(path.join(tmpdir(), 'dp-dst-'));
+  const backups = path.join(target, 'portable-backups');
+  for (const stamp of ['20200101-000000', '20200101-000001']) {
+    await mkdir(path.join(backups, stamp), { recursive: true });
+    await writeFile(path.join(backups, stamp, 'AGENTS.md'), 'old\n');
+  }
+  // A restore writes one of these; the ordinary keep-N budget must not eat it,
+  // or the one action that lets a user undo a restore would delete itself.
+  await mkdir(path.join(backups, '20200101-000002-pre-restore'), { recursive: true });
+  await writeFile(path.join(backups, '20200101-000002-pre-restore', 'AGENTS.md'), 'kept\n');
+
+  await install({ filePath: file, dshHome: target, keepBackups: 0 });
+
+  const left = await readdir(backups);
+  assert.ok(left.includes('20200101-000002-pre-restore'), 'pre-restore copies survive a zero budget');
+  assert.equal(left.filter((name) => /^\d{8}-\d{6}$/.test(name)).length, 0, 'keep 0 drops every ordinary snapshot');
 
   await rm(home, { recursive: true, force: true });
   await rm(target, { recursive: true, force: true });

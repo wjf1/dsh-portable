@@ -100,6 +100,43 @@ test('removing a share closes the server when it was the last one', async () => 
   }
 });
 
+test('the health endpoint does not disclose how many links are live', async () => {
+  const { filePath } = await fixture('x');
+  const share = new ShareServer({ ttlMinutes: 5 });
+  try {
+    await share.add({ filePath, maxDownloads: 5 });
+    const response = await fetch('http://127.0.0.1:' + share.port + '/health');
+    assert.equal(response.status, 200);
+    const text = await response.text();
+    assert.equal(text.trim(), 'dsh-portable');
+    // An unauthenticated caller must not learn how much is being shared.
+    assert.doesNotMatch(text, /[0-9]/);
+  } finally {
+    await share.close();
+  }
+});
+
+test('a full-range download counts against the limit', async () => {
+  const { filePath } = await fixture('0123456789');
+  const share = new ShareServer({ ttlMinutes: 5 });
+  try {
+    const created = await share.add({ filePath, maxDownloads: 1 });
+    const base = 'http://127.0.0.1:' + share.port + '/d/' + created.token;
+    // Browsers resume with bytes=0-; that is a complete download and must be
+    // counted, or a one-download link would serve forever.
+    const first = await fetch(base, { headers: { range: 'bytes=0-' } });
+    assert.equal(first.status, 206);
+    assert.equal(await first.text(), '0123456789');
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    assert.equal(share.list().length, 0);
+    // The only link is spent, so the listener retires too: a retry cannot even
+    // reach the token again.
+    assert.equal(share.running, false);
+  } finally {
+    await share.close();
+  }
+});
+
 test('lanAddresses never reports loopback or link-local addresses', () => {
   for (const address of lanAddresses()) {
     assert.ok(!address.address.startsWith('127.'), 'loopback leaked: ' + address.address);

@@ -82,7 +82,15 @@ export function apply(ctx, config) {
   const version = pluginVersion();
   const tool = { name, version };
   const settings = () => {
-    const dshHome = resolveDshHome();
+    // The host's profile context is the authority on where DSH home is (the
+    // same order lib/paths.mjs uses); DSH_HOME covers headless tool runs and
+    // ~/.dsh is the last resort. Keeping both files on one order matters:
+    // the panel's meta line must name the directory the installer writes to.
+    const published = safeGet(ctx, 'profileContext');
+    const fromContext = published !== null && typeof published.dshHome === 'string' && published.dshHome.trim() !== ''
+      ? path.resolve(published.dshHome)
+      : null;
+    const dshHome = fromContext ?? resolveDshHome();
     return { dshHome, profile: resolveProfile(ctx, config) };
   };
 

@@ -65,6 +65,7 @@ async function harness() {
     home,
     store,
     jobs,
+    share,
     submitted,
     base,
     async close() {
@@ -167,6 +168,8 @@ test('import refuses to write without an explicit confirmation', async () => {
 test('import accepts the same request once confirmed', async () => {
   const ctx = await harness();
   try {
+    // /import pre-checks that the package is on disk, so the fixture must exist.
+    await writeFile(path.join(ctx.store.dirs.exports, 'one.dshpkg'), 'not read by this route\n');
     const response = await fetch(ctx.base + '/import', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -423,6 +426,92 @@ test('a backup stamp cannot point outside the backup store', async () => {
     });
     assert.equal(response.status, 400);
     assert.equal((await response.json()).code, 'BAD_STAMP');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('deleting a package that is already gone answers 404', async () => {
+  const ctx = await harness();
+  try {
+    const response = await fetch(ctx.base + '/artifacts/delete', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ artifactId: 'exports:gone.dshpkg' }),
+    });
+    assert.equal(response.status, 404);
+    assert.equal((await response.json()).code, 'NOT_FOUND');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('import refuses a package that is not on disk', async () => {
+  const ctx = await harness();
+  try {
+    const response = await fetch(ctx.base + '/import', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ artifactId: 'exports:missing.dshpkg', confirm: true }),
+    });
+    assert.equal(response.status, 404);
+    assert.equal((await response.json()).code, 'NOT_FOUND');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('download answers HEAD with the headers but no body', async () => {
+  const ctx = await harness();
+  try {
+    const payload = 'HEAD-payload';
+    await writeFile(path.join(ctx.store.dirs.exports, 'head.dshpkg'), payload);
+    const response = await fetch(ctx.base + '/artifacts/download?artifactId=' + encodeURIComponent('exports:head.dshpkg'), {
+      method: 'HEAD',
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('content-length'), String(Buffer.byteLength(payload)));
+    assert.equal(await response.text(), '');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('a busy job manager is a 409, not an internal error', async () => {
+  const ctx = await harness();
+  try {
+    await writeFile(path.join(ctx.store.dirs.exports, 'busy.dshpkg'), 'anything\n');
+    ctx.jobs.start = () => {
+      const error = new Error('another job is running');
+      error.code = 'JOB_BUSY';
+      error.busyJobId = 'job-7';
+      throw error;
+    };
+    const response = await fetch(ctx.base + '/import', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ artifactId: 'exports:busy.dshpkg', confirm: true }),
+    });
+    assert.equal(response.status, 409);
+    const body = await response.json();
+    assert.equal(body.code, 'JOB_BUSY');
+    assert.equal(body.busyJobId, 'job-7');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('removing a share that is gone answers 404', async () => {
+  const ctx = await harness();
+  try {
+    ctx.share.remove = () => false;
+    const response = await fetch(ctx.base + '/share/remove', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ token: 'f'.repeat(32) }),
+    });
+    assert.equal(response.status, 404);
+    assert.equal((await response.json()).code, 'NOT_FOUND');
   } finally {
     await ctx.close();
   }

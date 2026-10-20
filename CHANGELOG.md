@@ -2,6 +2,50 @@
 
 本文件记录 dsh-portable 的所有重要变更，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## 0.1.8 — 2026-10-20
+
+按「同类问题全项目审计」的结论逐项收口：4 个 P1 正确性缺陷、8 个 P2 健壮性缺陷、6 个 P3 细节与 2 个疑似项。没有新功能，全部是让既有行为按文档所写的方式兑现。
+
+### 修复（正确性）
+
+- **`package.json` 合并从来没有执行过**（`lib/rewrite.mjs` / `lib/installer.mjs`）：`mergeProfilePackage` 写好了、HANDOFF 也宣称「按目标机现状合并」，但 install 路径只调用了 `rewriteExtractedTree`，后者只做路径替换。结果导入会把源机的 `dependencies` 直接盖在目标机上，目标机后来装的插件在下次 `npm install` 时会被当成 extraneous 删掉。现在 `rewriteExtractedTree` 接收 `targetPackagePath`，读目标机 `package.json` 后按 `mergeProfilePackage` 合并，结果写入 `report.rewrites.merged` 并在面板显示（保留 / 缺失的 bundle）。
+- **备份恢复会覆盖无法回滚的文件**（`lib/routes.mjs` 的 `/backups/restore`）：pre-restore 拷贝失败时被 `catch(() => {})` 吞掉，接着照样把备份写回去。现在失败项进入 `failed` 并跳过，绝不覆盖没有留下应急副本的文件。
+- **`jobs.dispose()` 返回 `undefined`**（`lib/jobs.mjs`）：`index.js` 写的是 `void jobs.dispose().catch(...)`，worker 优雅退出路径根本没有被等待。现在 `dispose()` 收集每个 `worker.terminate()` 并返回 `Promise.all`。
+- **Range 下载不计入次数**（`lib/share.mjs`）：浏览器断点续传会发 `Range: bytes=0-`，此前只看「有没有 Range 头」，于是一次性链接可以无限下载。现在只有完整区间（`range === null` 或 `0..size-1`）才计数。
+- **worker 退出未上报结果时任务永久 running**（`lib/jobs.mjs`）：原逻辑只在退出码非 0 时标失败，code 0 会让任务卡在 running、面板按钮全禁用。现在任何「running/queued 状态下退出且没上报结果」都记为 failed 并带退出码。
+
+### 修复（面板）
+
+- **刷新会清掉刚显示的错误**（`lib/client.js` 的 `refresh`）：成功分支的 `setError(null)` 会吃掉 `follow` 刚设置的失败信息（0.1.7 只修了时序，本次从根上去掉）。
+- **上传没有进度、也没有防重入**（`lib/client.js`）：`fetch` 改 `XMLHttpRequest`，`upload.onprogress` 驱动百分比；`uploadBusy` ref 挡住连点。
+- **轮询可能重叠**（`lib/client.js` 的 `follow`）：前一次 `jobs/detail` 未返回时不会发起下一次（`pollBusy` ref）。
+- **请求没有超时**（`lib/client.js` 的 `call`）：统一 60 秒 `AbortController`，超时错误写明 `timeout after 60s: <path>`。
+- **任务无法取消**：`JobBar` 增加取消按钮（`POST /jobs/cancel`），running 时才显示。
+- **导出没有百分比**（`lib/archive.mjs`）：write 阶段进度补 `percent`，面板显示 `已完成 / 总数 files`。
+- **`JOB_BUSY` 被当成 500**（`lib/routes.mjs`）：现在回 409 并带 `busyJobId`。
+
+### 修复（边界与清理）
+
+- `/artifacts/delete` 删除不存在的包：404，不再是静默成功。
+- `/import` 预检：包不在磁盘上直接 404，不进 worker。
+- `/share/remove` 移除不存在的分享：404。
+- `/artifacts/download` 支持 `HEAD`（返回头、空 body），`handle` 把 HEAD 映射到 GET 路由。
+- 备份保留策略（`lib/installer.mjs`）：`keep: 0` 现在真的清空普通快照；`*-pre-restore` 目录永不被预算修剪（否则「恢复」唯一能撤销的手段会被自己删掉）。
+- 导入中途失败不再留下 `portable-staging` 目录：staging 清理移入 `finally`。
+- `settings()` 优先取 `profileContext.dshHome`，`lib/paths.mjs` 删除 7 个死导出与 `fs`/`os` 引用；`lib/manifest.mjs` 删除 `describeManifest`/`formatBytesShort`。
+
+### 安全
+
+- `/health` 不再回报当前连接数（未认证调用者不该知道有多少条链接在跑）。
+
+### 测试
+
+- 新增 9 项：删除不存在 404、导入预检 404、下载 HEAD、`JOB_BUSY` 409、分享移除 404、`/health` 不暴露数量、完整 Range 计数、`keep:0` 与 `-pre-restore`、失败导入不留 staging。全量 **59 项**通过。
+
+### 文档
+
+- README 双语补 `report` 合并展示、取消按钮、下载 HEAD 与测试数；HANDOFF 记录审计分类与逐项结论。
+
 ## 0.1.7 — 2026-10-20
 
 真机反馈「预览变更点了没反应」：查下来是两层问题叠在一起 —— 一个被截断的包，以及失败原因刚显示就被自己清掉。

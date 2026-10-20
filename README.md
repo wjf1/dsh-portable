@@ -55,9 +55,9 @@ Six cards:
 1. **Export** — pick which optional roots to include, name the file, press Export. Packing runs in a worker thread; the progress bar streams entry counts, and a 20 MB package over ~14 000 entries takes about 3 seconds.
 2. **Packages** — every `.dshpkg` under `<DSH_HOME>/dsh-portable/exports`, with size, modification time and buttons: Select / Download / Share / Delete (delete asks for confirmation). *Select* marks a package for the Import card below; *Download* streams it to the browser so it can be saved to disk and carried to another machine on a USB stick — the LAN share is only reachable while both machines are on the same network.
 3. **Upload** — drag or pick a `.dshpkg` and it is streamed to disk (`.part` then rename) with a live percentage, so a 2 GB package never sits in memory.
-4. **Import** — pick merge or replace (the active choice is highlighted), press *Preview* first (zero writes), then *Run import* — which opens an inline confirmation before anything is written. The result is a small key/value summary: applied items, rewritten paths, backup folder and warnings, plus the plugin-list merge (bundles kept from this machine, bundles the package needs but this machine lacks).
+4. **Import** — pick merge or replace (the active choice is highlighted), press *Preview* first (zero writes), then *Run import* — which opens an inline confirmation before anything is written. The result is a small key/value summary: applied items, rewritten paths, backup folder and warnings, plus the plugin-list merge (bundles kept from this machine, bundles the package needs but this machine lacks). Restart DSH after the import for the written configuration to take effect.
 5. **LAN share** — publish a package as a one-shot download link (`http://<lan-ip>:<port>/d/<token>`). Defaults: **1 download, 60 minutes**, Range/HEAD supported, 410 on expiry or exhaustion. *Copy* puts the link on the clipboard and only reports success when the clipboard really accepted it (a textarea fallback covers plain-HTTP origins). No relay, no cloud, no account.
-6. **Backups** — the automatic pre-install backups (`<DSH_HOME>/portable-backups/<stamp>`), newest 5 kept. Each one has **Restore**, which copies its files back over the live tree after first saving the current versions under `<stamp>-pre-restore`.
+6. **Backups** — the automatic pre-install backups (`<DSH_HOME>/portable-backups/<stamp>`), newest 5 kept. Each one has **Restore**, which copies its files back over the live tree after first saving the current versions under `<stamp>-pre-restore`. Restart DSH afterwards for the restored files to take effect.
 
 ## Screenshots
 
@@ -179,7 +179,7 @@ Path rewriting is deliberately narrow: only `profiles/<p>/cordis.patch.yml`, `co
 ## Development
 
 ```bash
-npm test          # 59 tests: tar, archive, installer, jobs, routes, share, inspect
+npm test          # 60 tests: tar, archive, installer, jobs, routes, share, inspect
 npm run check     # syntax check + import smoke test
 npm run sync      # copy this package into a profile's node_modules for live testing
 npm run verify    # release gate: version consistency, files manifest, tests

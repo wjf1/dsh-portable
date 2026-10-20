@@ -111,3 +111,12 @@ test('rejects a file that is not a dsh-portable package', async () => {
   await assert.rejects(() => readManifest(bogus));
   await rm(dir, { recursive: true, force: true });
 });
+
+test('a missing file surfaces as ENOENT, not as a missing manifest', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'dp-gone-'));
+  const gone = path.join(dir, 'gone.dshpkg');
+  // Without the source error forwarder this rejects with "missing manifest",
+  // which points at the package content instead of the unreadable path.
+  await assert.rejects(() => readManifest(gone), (error) => error.code === 'ENOENT');
+  await rm(dir, { recursive: true, force: true });
+});

@@ -2,6 +2,20 @@
 
 本文件记录 dsh-portable 的所有重要变更，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## 0.1.10 — 2026-10-20
+
+### 修复
+
+- **上传输入没有禁用**（`lib/client.js`）：上传进行中仍能再次选择文件，第二次点击会被 `uploadBusy` 静默丢弃，用户看不出为什么没反应。现在上传或任务进行中文件输入框是 `disabled`。
+- **删除包用的是闭包里的旧选中值**（`lib/client.js` 的 `deleteArtifact`）：回调捕获的 `selected` 可能是上一次渲染的值，删掉当前选中的包时不会清空导入卡片。现在改用函数式 `setSelected`，删除任何包后都清空预览结果。
+- **刷新后丢失正在运行的任务**（`lib/client.js` 的 `refresh`）：面板重载只恢复数据、不恢复 `busyJobId`，进度条消失、按钮全部可点。现在 `refresh` 读到 `status.busyJobId` 且当前没有轮询时，取 `/jobs/detail` 重新接管该任务。
+- **导入与恢复完成后没有提示重启**（`lib/client.js`）：写入的配置要重启 DSH 才生效，面板此前只报「已恢复」。现在导入完成与备份恢复的提示都带「需要重启 DSH 才会生效」。
+- **包读取失败被伪装成「缺 manifest」**（`lib/archive.mjs` 的 `readManifest` / `extractPackage`）：`createReadStream` 的错误没有转发给 `gunzip`，`pipe` 会吞掉它，调用方拿到的是 `missing dsh-portable/package.json`（指向包内容而不是不可读的路径），还可能因未处理的 `error` 事件让进程退出。现在 source 的错误直接 `gunzip.destroy(error)`。
+
+### 测试
+
+- 新增 1 项（缺失文件抛 `ENOENT` 而不是「缺 manifest」），全量 60 项通过。
+
 ## 0.1.9 — 2026-10-20
 
 ### 修复

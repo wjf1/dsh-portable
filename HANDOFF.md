@@ -1,7 +1,7 @@
 # HANDOFF — dsh-portable 接力开发文档
 
 > 新会话接手：先读本文件，再读 `README.md`（行为契约）与 `CHANGELOG.md`（当前版本做了什么），最后才看代码。
-> 最后更新：2026-10-20 · 版本 0.1.6
+> 最后更新：2026-10-20 · 版本 0.1.7
 
 ---
 
@@ -11,14 +11,14 @@
 
 **解决的问题**：DSH 的 profile 是"配置 + 带 node_modules 的插件 + 技能 + hooks + 任务板"的集合，且配置里写死本机绝对路径与 profile 名。换机时直接复制目录会导致插件路径失效，而插件安装依赖联网 pnpm，在内网机上根本不可行。
 
-**当前状态（0.1.6，可交付）**：
+**当前状态（0.1.7，可交付）**：
 
 | 维度 | 状态 |
 | --- | --- |
 | 功能完整度 | 导出 / 下载到本机 / 预览 / 导入（merge、replace，带二次确认）/ 上传（百分比）/ 局域网分享 / 备份（可恢复）/ 四个模型工具 / 设置页面板 —— 全部落地 |
-| 测试 | `npm test` 49 项全绿（tar 11、archive 5、installer 6、jobs 2、routes 18、share 6、inspect 1） |
+| 测试 | `npm test` 50 项全绿（tar 11、archive 5、installer 6、jobs 2、routes 19、share 6、inspect 1） |
 | 真实数据验证 | 对本机 `C:\\Users\\admin\\.dsh` 真导出：20 664 511 字节 / 13 774 条目 / 2.8 秒；再对临时 home 真安装：9 个顶层项全部落地、13491 文件、3 个文件 3 处路径被重写 |
-| 发布状态 | **已发布 0.1.0 / 0.1.1 / 0.1.2 / 0.1.3 / 0.1.4 / 0.1.5 / 0.1.6**：0.1.6（真机走查修复：任务终态改用 `succeeded`，进度条不再不收尾导致整面板按钮永久禁用；剪贴板写入加 1.5 秒超时兜底，49 项测试全绿）· 0.1.5（面板可用性修复：备份恢复、导入二次确认、上传进度、真正写剪贴板、导入结果表格化、凭据警示，49 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.5>，tag 触发 release.yml 自动 npm publish）· 0.1.4（新增「下载」按钮与 `GET /artifacts/download` 路由，46 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.4>，tag 触发 release.yml 自动 npm publish）· 0.1.3（24 文件 / shasum `6dd21365…` / 200529 B 解包，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.3>，ci + release 全绿，本机 profile 已升到 `^0.1.3`）· 0.1.2（24 文件 / shasum `6d1db122…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.2>，ci + release 全绿，本机 profile 已升到 `^0.1.2`）· 0.1.1（24 文件 / shasum `660369b0…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.1>，release.yml run 39103118643 真跑 npm publish）· 0.1.0 详情：npm <https://www.npmjs.com/package/dsh-portable>（24 文件 / 60.2 kB / shasum `1684d7b8…`）、GitHub Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.0>、tag `v0.1.0`；线上安装 + `import('dsh-portable')` 冒烟通过 |
+| 发布状态 | **已发布 0.1.0 / 0.1.1 / 0.1.2 / 0.1.3 / 0.1.4 / 0.1.5 / 0.1.6 / 0.1.7**：0.1.7（修「预览变更没反应」：任务失败的错误改用 `refresh().finally(...)` 兜底显示，上传落盘前用 `readManifest` 校验、截断包直接 400 `BAD_ARCHIVE`，50 项测试全绿）· 0.1.6（真机走查修复：任务终态改用 `succeeded`，进度条不再不收尾导致整面板按钮永久禁用；剪贴板写入加 1.5 秒超时兜底，49 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.6>）· 0.1.5（面板可用性修复：备份恢复、导入二次确认、上传进度、真正写剪贴板、导入结果表格化、凭据警示，49 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.5>，tag 触发 release.yml 自动 npm publish）· 0.1.4（新增「下载」按钮与 `GET /artifacts/download` 路由，46 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.4>，tag 触发 release.yml 自动 npm publish）· 0.1.3（24 文件 / shasum `6dd21365…` / 200529 B 解包，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.3>，ci + release 全绿，本机 profile 已升到 `^0.1.3`）· 0.1.2（24 文件 / shasum `6d1db122…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.2>，ci + release 全绿，本机 profile 已升到 `^0.1.2`）· 0.1.1（24 文件 / shasum `660369b0…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.1>，release.yml run 39103118643 真跑 npm publish）· 0.1.0 详情：npm <https://www.npmjs.com/package/dsh-portable>（24 文件 / 60.2 kB / shasum `1684d7b8…`）、GitHub Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.0>、tag `v0.1.0`；线上安装 + `import('dsh-portable')` 冒烟通过 |
 | 本机集成 | desktop profile 里已用 `npm install dsh-portable --legacy-peer-deps` 装好（`dependencies` 有记录、`dsh.profile.bundles` 有条目），面板在 设置 → 便携迁移。**2026-10-18 21:33 已按计划重启收尾**：临时热挂载条目 `mkt-dsh-portable` 已从 `<profile>/cordis.patch.yml` 删除（备份 `.bak-20261018-restart`），重启后由 bundle 层正式加载一份实例，`/dsh-portable/api/status` 回 403（身份闸）、未知路径 404，模型工具 `portable_export` 在真机上导出 118 MB / 14 841 条目成功。**踩过的坑**：早先手工拷贝的目录被同 profile 的 `npm install` 当 extraneous 清掉，插件静默消失、面板只剩 `HTTP 404` |
 | 上架路径 | 向 `awesome-dsh-plugin/awesome-dsh-plugin` 提交条目（材料在 `market/`，见 `PUBLISHING.md`）；仓库创建未满 1 天前投不进去 |
 
@@ -66,9 +66,11 @@ dsh-portable/
 - 配置解析顺序：`config.profile` → `ctx.get('profileContext').name` → `DSH_PROFILE` → `desktop`。
 - 对外服务一律 `ctx.get('svc')`，未在 `inject` 里声明的属性直接访问会抛。
 
-## 4. 最近一轮变更与交付成果（0.1.6）
+## 4. 最近一轮变更与交付成果（0.1.7）
 
-**0.1.6（当前）**：真机复测 0.1.5 时发现面板会在导出 / 预览 / 导入结束后「假死」：后端 `lib/jobs.mjs` 第 83 行的终态是 `succeeded`，而 `lib/client.js` 的 `follow` 只认 `done`，于是 `stopPolling()` 与 `setBusyJob(null)` 永不执行、`busy` 恒真 —— 创建包、刷新、选择、分享、删除、执行导入全部禁用（本机导出 568.4 MB 后稳定复现；该判断自 0.1.0 首版就是 `done`，属历史缺陷，直到这轮真机走查才暴露）。改为按 `succeeded` 收尾，并补 `state.succeeded` 文案（此前 JobBar 直接显示英文枚举）。另一处：`copyText` 直接 `await navigator.clipboard.writeText(...)`，在未聚焦或受限窗口里该 Promise 既不 resolve 也不 reject，分享后的自动复制会永久待定；改为 `Promise.race` 加 1.5 秒超时，超时后落到 `textarea` + `execCommand('copy')`。全量 49 项测试通过。
+**0.1.7（当前）**：真机反馈「预览变更点了没反应」。直接打 API 复现：`POST /import/preview` 回 200 并启动 job，但 job 在 763 毫秒后 `state=failed`、`error.message=unexpected end of file`（`Z_BUF_ERROR`，zlib 解压到一半没了）——列表里选中的那个 22.7 MB 包是截断的上传（同一份包的完整导出是 521.5 MB / 546850812 B）。可前端什么都没显示：`lib/client.js` 的 `follow` 在 failed 分支先 `setError(...)` 再 `void refresh()`，而 `refresh()` 成功时第 462 行 `setError(null)` 把刚设的错误清掉，错误只活一帧，面板看起来像没响应。修法：failed 分支改 `void refresh().finally(() => setError(message))`，错误稳定留在顶部。第二层修上传：`lib/routes.mjs` 的 `receiveUpload` 在 `rename(part, destination)` 前用 `readManifest(part)` 校验，读不出 manifest 就删掉临时文件并回 400 `BAD_ARCHIVE`，截断包再也进不了库。测试新增 1 项（截断包被拒且不落库），`upload` 用例改为上传真实包，全量 50 项通过。
+
+**0.1.6**：真机复测 0.1.5 时发现面板会在导出 / 预览 / 导入结束后「假死」：后端 `lib/jobs.mjs` 第 83 行的终态是 `succeeded`，而 `lib/client.js` 的 `follow` 只认 `done`，于是 `stopPolling()` 与 `setBusyJob(null)` 永不执行、`busy` 恒真 —— 创建包、刷新、选择、分享、删除、执行导入全部禁用（本机导出 568.4 MB 后稳定复现；该判断自 0.1.0 首版就是 `done`，属历史缺陷，直到这轮真机走查才暴露）。改为按 `succeeded` 收尾，并补 `state.succeeded` 文案（此前 JobBar 直接显示英文枚举）。另一处：`copyText` 直接 `await navigator.clipboard.writeText(...)`，在未聚焦或受限窗口里该 Promise 既不 resolve 也不 reject，分享后的自动复制会永久待定；改为 `Promise.race` 加 1.5 秒超时，超时后落到 `textarea` + `execCommand('copy')`。全量 49 项测试通过。
 
 **0.1.5（当前）**：按真机走查修面板可用性。分享按钮此前只 `setCopied(url)` 从未写剪贴板、复制按钮在剪贴板不可用时也标「已复制」——新增 `copyText()`（`navigator.clipboard` → `textarea` + `document.execCommand` 兜底，返回布尔），两处都以真实结果为准；「执行导入」原来一击落盘，改为内联确认块（写明 merge / replace，并提示 replace 会先移走旧项）；包列表的「导入」改名「选择」（它只做选中）；merge/replace 按钮由 `disabled` 改成 `active` + `aria-pressed`；上传改 XHR 带百分比；导出 / 上传 / 恢复完成都有 notice 行；导入结果由裸 `<pre>` 换成键值表格（applied / rewritten / backupDir / warnings）；勾选「凭据文件」时红字警示；删掉死键 `act.inspect`。新增 `POST /backups/restore`（`lib/routes.mjs`）：校验 `\d{8}-\d{6}` 形式的 stamp → 逐文件写回主目录，写回前把当前版本另存到 `<stamp>-pre-restore`（所以恢复也能反悔），备份里的 `replaced/` 不参与恢复；备份卡片每条加「恢复」+ 二次确认。测试 46 → 49（恢复写入并保留被覆盖文件、缺备份 404、stamp 越界 400 `BAD_STAMP`）。**踩坑**：`copyFile(source, aside)` 写成把备份文件拷进 pre-restore 目录，测试报 `Expected 'live' but got 'from-backup'`，应为 `copyFile(target, aside)`。
 
@@ -123,10 +125,12 @@ dsh-portable/
 6. **单文件选择器**：v0.1.x 只能按顶层根整体导入，后续可支持勾选具体子路径。
 7. **e2e 测试**：目前 installer 用临时目录 + fixture，缺"真实 profile 装完能被 DSH 启动"的验证。
 8. **下载的后续改进**（0.1.4 已落地主体）：当前 `GET /artifacts/download` 整文件流式发送，未实现 Range 断点续传，也没有面板内进度条——500 MB 以上的包只能看浏览器自己的下载提示。可复用分享路由里已有的 Range/HEAD 处理。
-9. ~~0.1.5 真机走查~~（已完成 2026-10-20，产物是 0.1.6）：按清单在真机上逐项点了面板 —— 下载链接指向 `GET /artifacts/download?artifactId=exports%3A…` 且带 `download` 文件名；「选择」后导入卡显示当前包；「执行导入」先出内联确认块（确认写入？/ merge 与 replace 说明 / 覆盖同名文件警告 / 确认导入 + 取消）；「分享」生成一次性链接并自动尝试写剪贴板（无聚焦环境下会降级提示「复制失败：请手动选中链接复制。」，按钮「复制链接」可重试）；勾「凭据文件」出红字警示；上传卡 hint 与百分比行就位。走查还揪出 0.1.6 修的两个缺陷（进度条不收尾、剪贴板挂起），见第 4 节。
+9. ~~0.1.5 真机走查~~（已完成 2026-10-20，产物是 0.1.6 / 0.1.7）：按清单在真机上逐项点了面板 —— 下载链接指向 `GET /artifacts/download?artifactId=exports%3A…` 且带 `download` 文件名；「选择」后导入卡显示当前包；「执行导入」先出内联确认块（确认写入？/ merge 与 replace 说明 / 覆盖同名文件警告 / 确认导入 + 取消）；「分享」生成一次性链接并自动尝试写剪贴板（无聚焦环境下会降级提示「复制失败：请手动选中链接复制。」，按钮「复制链接」可重试）；勾「凭据文件」出红字警示；上传卡 hint 与百分比行就位。走查还揪出 0.1.6 修的两个缺陷（进度条不收尾、剪贴板挂起），见第 4 节。**二轮（2026-10-20 晚）**：用户报「预览变更点了没反应」，用不带 UI 的 fetch 直接打 `/import/preview` 复现出 job `failed`（`unexpected end of file`），再对照前端代码发现错误被 `refresh()` 清掉 —— 0.1.7 同时修了错误显示与上传完整性校验。
 
 ## 6. 关键避坑与运行约束
 
+- **失败任务的消息会被 refresh 吃掉**：`refresh()` 成功时第 462 行 `setError(null)`；`follow` 若先 `setError(...)` 再 `void refresh()`，错误只活一帧，用户看到的是「点了没反应」。失败分支要用 `void refresh().finally(() => setError(message))`（0.1.7）。排查这类「无反应」先看 `follow` 的终态分支与 `refresh` 的清理顺序，再看 job 的 `error.message`。
+- **上传必须校验 manifest**：`receiveUpload` 的 `pipeline` 成功只代表字节写完，不代表包完整；截断包（521.5 MB 只传了 22.7 MB）会让之后每次预览 / 导入报 `unexpected end of file`（`Z_BUF_ERROR`）。落盘前 `readManifest(part)` 一次，失败 `rm(part)` 并回 400 `BAD_ARCHIVE`（0.1.7）。
 - **`node --test`**：不要写 `node --test test/`。
 - **`String.raw` 里的正则**：字符类中 `{` 紧跟 `$` 会被模板插值解析成 `Expression expected`，把花括号挪到字符类末尾。
 - **`worker_threads`**：只用 `new Worker(url)` 会报 `Worker is not defined`，必须先 `import { Worker } from 'node:worker_threads'`。

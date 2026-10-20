@@ -2,6 +2,23 @@
 
 本文件记录 dsh-portable 的所有重要变更，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## 0.1.7 — 2026-10-20
+
+真机反馈「预览变更点了没反应」：查下来是两层问题叠在一起 —— 一个被截断的包，以及失败原因刚显示就被自己清掉。
+
+### 修复
+
+- **任务失败的错误只存在一帧**（`lib/client.js` 的 `follow`）：failed 分支先 `setError(...)` 再 `void refresh()`，而 `refresh()` 成功时会 `setError(null)`，于是错误立刻被清空，面板看起来像什么都没发生。改为 `refresh().finally(() => setError(message))`，失败原因稳定留在顶部。
+- **上传不校验包是否完整**（`lib/routes.mjs` 的 `receiveUpload`）：截断的上传文件（例如 521.5 MB 的包只传了 22.7 MB）会被当成正常包收下，之后每次预览 / 导入都报 `unexpected end of file`。现在落盘前先用 `readManifest` 读一次 manifest，读不出就删掉临时文件并回 400 `BAD_ARCHIVE`。
+
+### 测试
+
+- `upload` 用例改为上传真实包（`writeRealPackage` 辅助）；新增「截断包被拒且不落库」（400 `BAD_ARCHIVE`，列表里看不到）。全量 50 项。
+
+### 文档
+
+- HANDOFF 记录两处根因与排查路径。
+
 ## 0.1.6 — 2026-10-20
 
 0.1.5 的真机走查揪出两个让面板「看起来卡死」的缺陷：一个是自 0.1.0 就写错的终态判断，一个是剪贴板 API 挂起。

@@ -73,6 +73,33 @@ async function harness() {
   };
 }
 
+/** Write a genuine package so routes that validate the archive have something real to read. */
+async function writeRealPackage(home, outPath) {
+  await writePackage({
+    dshHome: home,
+    profileName: 'desktop',
+    options: {
+      includeNodeModules: false,
+      includeSessions: false,
+      includeRuntimes: false,
+      includeCredentials: false,
+      includeSourceMaps: true,
+      includeBackups: false,
+    },
+    outPath,
+    tool: { name: 'dsh-portable', version: '0.0.0-test' },
+    source: {
+      hostname: 'h',
+      platform: process.platform,
+      arch: process.arch,
+      node: process.version,
+      dshHome: home,
+      profile: 'desktop',
+      dshVersion: '',
+    },
+  });
+}
+
 test('status reports the plugin and the host it lives on', async () => {
   const ctx = await harness();
   try {
@@ -202,19 +229,38 @@ test('export maps the option switches and names the artifact it will produce', a
   }
 });
 
-test('upload streams to disk and reports the same artifact id the list uses', async () => {
+test('upload streams a real package to disk and reports the same artifact id the list uses', async () => {
   const ctx = await harness();
   try {
+    const source = path.join(ctx.home, 'upload-source.dshpkg');
+    await writeRealPackage(ctx.home, source);
+    const bytes = await readFile(source);
     const response = await fetch(ctx.base + '/upload/moved.dshpkg', {
       method: 'PUT',
-      body: 'payload-bytes',
+      body: bytes,
     });
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.artifactId, 'uploads:moved.dshpkg');
-    assert.equal(body.size, 13);
+    assert.equal(body.size, bytes.length);
     const listed = await (await fetch(ctx.base + '/artifacts')).json();
     assert.equal(listed.artifacts[0].name, 'moved.dshpkg');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('a truncated upload is refused instead of landing in the store', async () => {
+  const ctx = await harness();
+  try {
+    const response = await fetch(ctx.base + '/upload/broken.dshpkg', {
+      method: 'PUT',
+      body: 'not-a-package',
+    });
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).code, 'BAD_ARCHIVE');
+    const listed = await (await fetch(ctx.base + '/artifacts')).json();
+    assert.equal(listed.artifacts.find((row) => row.name === 'broken.dshpkg'), undefined);
   } finally {
     await ctx.close();
   }

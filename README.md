@@ -152,17 +152,23 @@ hooks/hooks.json
 
 Because it is a plain tar, `tar -xzf machine.dshpkg` works anywhere — you can inspect a package on a machine that has never heard of DSH. Long paths use PAX extended headers; the reader understands them incrementally, including PAX bodies that straddle chunk boundaries.
 
+A trailing `.dsh-portable/checksums.json` entry carries a sha256 for every payload file. Import re-computes each digest while it writes and refuses the package if any file differs, so a tampered or truncated archive cannot be silently restored. Packages without that entry (older ones, hand-built ones) still import, but the report says `verified: false` instead of implying the contents were checked.
+
+> **Disk headroom.** Import writes the package's full contents into `portable-staging/<stamp>` before merging them into place, so peak disk use is roughly *package size after extraction* on top of what the profile already occupies. That double write is what makes a failed import recoverable — nothing in the live tree has been touched yet.
+
 ## Import pipeline
 
 ```text
 preview:  read manifest ──► per-top counts + existsOnTarget ──► report (zero writes)
-install:  extract to <home>/portable-staging/<stamp>
+install:  extract to <home>/portable-staging/<stamp>  (sha256 verified while writing)
           ──► rename profile dir if the target profile name differs
           ──► rewrite local paths in the 6 config files
           ──► back up those 6 files to <home>/portable-backups/<stamp>
           ──► apply each top-level item (merge: add/overwrite; replace: move aside first)
           ──► prune old backups ──► delete staging
 ```
+
+Cancelling an import asks the worker to abort and waits for it to unwind (up to 5s) before terminating it, so the staging directory is always removed — a cancelled 1 GB import does not leave a 1 GB copy behind.
 
 Path rewriting is deliberately narrow: only `profiles/<p>/cordis.patch.yml`, `cordis.yml`, `package.json`, `pnpm-workspace.yaml`, `hooks/hooks.json`, `hooks/settings.json`. Plugin package contents are **not** rewritten, so third-party integrity checks and source maps stay intact.
 

@@ -156,13 +156,19 @@ hooks/hooks.json
 
 ```text
 预览:  读 manifest ──► 每个顶层项的文件数/字节数/目标机是否存在 ──► 报告（零写入）
-安装:  解包到 <home>/portable-staging/<stamp>
+安装:  解包到 <home>/portable-staging/<stamp>（边写边校验 sha256）
        ──► 目标 profile 名不同则重命名目录
        ──► 重写 6 个配置文件里的本机路径
        ──► 这 6 个文件备份到 <home>/portable-backups/<stamp>
        ──► 逐顶层项落地（merge：只增不减；replace：先移走再落）
        ──► 清理旧备份 ──► 删除暂存区
 ```
+
+包尾的 `.dsh-portable/checksums.json` 记录每个文件的 sha256。导入时边写边算，对不上就直接拒绝该包，被篡改或传坏的包不会被静默还原成"看起来正常"的数据。没有该条目的包（旧包、手工打的包）仍可导入，但报告里是 `verified: false`，不会假装校验过。
+
+> **磁盘余量。** 导入会先把整包解开到 `portable-staging/<stamp>`，再合并到目标位置，因此峰值占用约为"解压后体积"叠加在现有 profile 之上。这次双写换来的是失败可回滚——落地前目标目录一点都没动。
+
+取消导入时先让 worker 自行中止并退出（最多等 5 秒），确认退出不了才强制终止，因此暂存目录一定会被清掉：取消一个 1 GB 的导入不会留下 1 GB 垃圾。
 
 路径重写刻意收窄：只碰 `profiles/<p>/cordis.patch.yml`、`cordis.yml`、`package.json`、`pnpm-workspace.yaml`、`hooks/hooks.json`、`hooks/settings.json`。**插件包内部不重写**，第三方完整性校验与 source map 不受影响。
 
@@ -171,7 +177,8 @@ hooks/hooks.json
 - **白名单采集。** 代码里不存在递归遍历整个主目录的逻辑。
 - **只认 artifactId，不认路径。** 见上。
 - **导入必须确认。** 缺 `confirm:true` 的路由返回 `400 CONFIRM_REQUIRED`；模型工具默认 dry-run。
-- **解包防护。** 200 000 条目上限、单文件 2 GB、总解压 8 GB、压缩比 200（输出超 64 MB 后才生效）、`wx` 不覆盖、`safeJoin` 挡 `..`、符号链接为绝对路径或越界时拒绝。
+- **解包防护。** 200 000 条目上限、单文件 2 GB、总解压 8 GB、压缩比 200（输出超 64 MB 后才生效）、`wx` 不覆盖、`safeJoin` 挡 `..`、符号链接为绝对路径或越界时拒绝；合并落地时再次校验符号链接目标，绝不还原指向主目录之外的链接。
+- **逐文件校验。** 包尾 `checksums.json` 收录每个文件的 sha256，导入时比对，不一致直接失败。
 - **写之前先备份。** 六个配置文件先复制到备份目录；replace 模式把整个目录移进 `portable-backups/<stamp>/replaced/`，不是删除。
 - **凭据默认不进包。** `.credentials.yaml` 只有显式勾选才打包，面板上的勾选框直接标注风险。导出是纯本地操作，不上传任何数据。
 - **分享链接范围极小。** 一次下载、60 分钟、单文件、token 门禁，之后 410。没有目录列举，没有中继。

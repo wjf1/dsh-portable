@@ -2,6 +2,26 @@
 
 本文件记录 dsh-portable 的所有重要变更，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## Unreleased
+
+### 修复
+
+- **含重复路径条目的包会让导入永久挂起**（`lib/archive.mjs`）：`flags: 'wx'` 的重复路径错误是异步抛出的，而写入端只在等 `'drain'`。出错后的流永远不会再发 `drain`，`end()` 的回调也不会执行，于是 promise 永不 settle，界面一直转圈。现在收尾同时监听 `drain`/`close`/`error`，写入失败降级为 warning 并继续（与解包器"文件系统拒绝的条目不算致命"的既有口径一致），`O_EXCL` 仍然保证不覆盖已写入的文件。附「重复路径条目」回归测试。
+- **取消导入会残留整包大小的暂存垃圾**（`lib/jobs.mjs`、`lib/worker/job-worker.mjs`）：取消直接 `worker.terminate()` 硬杀线程，worker 里 `finally` 的暂存清理永远不执行，每次取消都在 `portable-staging/` 留下一个目录。现在先向 worker 发 `abort` 消息、等它自行清理退出（5 秒宽限），确认退出不了才 terminate；宿主侧还会按 worker 上报的 stagePath 兜底删除。附两条回归测试（中止导入、取消任务）。
+- **解包失败同样会残留暂存**（`lib/installer.mjs`）：解包的 `catch` 原本在 `finally` 之外，抽取阶段抛错时不会被清理。现在解包也纳入 `finally` 保护范围。
+- **分享下载计数存在竞态**（`lib/share.mjs`）：`检查 downloads>=max → 传输 → +1` 不是原子的，两个并发请求能双双通过检查，"最多下载 N 次"不被严格执行。现在在检查的同一 tick 内预留名额，传输完成才结算，中断则释放（中断不算一次下载）。
+- **恢复时可能还原越界的符号链接**（`lib/installer.mjs`）：`mergeTree` 直接 `readlink` + `symlink`，没有校验目标。现在绝对路径、盘符、含 `..` 的目标一律拒绝并记 warning（纵深防御：解包侧本来也会拒）。
+
+### 新增
+
+- **`.dshpkg` 文件级 sha256 校验**（`lib/archive.mjs`）：打包时边写边算，包尾写一个 `.dsh-portable/checksums.json`；导入时边写边算并与它比对，任何一个文件不一致就拒绝导入（不再静默还原坏数据）。没有该条目的旧包仍可导入，`stats.verified` 为 `false` 并记一条 warning。校验清单放在包尾而不是 manifest 里，是为了保住「读 manifest 只花几 KB」这个用于预览/检查的约定。
+- 导出/预览解包（`extractPackage`、`writePackage`、`install`）都接受 `AbortSignal`，长任务可协作式中止。
+
+### 移除
+
+- `lib/schema.mjs`（16 个配置项的 schemastery 面板）：全文零引用，仓库也没有配置 UI，用户改不到这些开关——尤其 `shareEnabled` 被承诺能关掉分享却完全没接线。分享本身是逐次显式动作（`POST /share` 或 `portable_share` 工具），不会常驻监听，因此直接删除这份死配置而不是接一条新的配置链路。
+- 根目录被误提交的 `{` 空文件（某次 shell 花括号展开的残留）。
+
 ## 0.1.10 — 2026-10-20
 
 ### 修复

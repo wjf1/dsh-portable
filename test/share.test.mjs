@@ -143,3 +143,54 @@ test('lanAddresses never reports loopback or link-local addresses', () => {
     assert.ok(!address.address.startsWith('169.254.'), 'link-local leaked: ' + address.address);
   }
 });
+
+test('concurrent downloads cannot exceed downloadsMax', async () => {
+  // 4 MB so both requests are still in flight when the second one arrives;
+  // with a tiny file the first transfer could finish first and hide the race.
+  const { filePath } = await fixture('z'.repeat(4 * 1024 * 1024));
+  const share = new ShareServer({ ttlMinutes: 5 });
+  try {
+    const created = await share.add({ filePath, maxDownloads: 1 });
+    const url = 'http://127.0.0.1:' + share.port + '/d/' + created.token;
+
+    // Fire both before either can settle: the slot must be reserved up front,
+    // not counted on 'finish'.
+    const [a, b] = await Promise.all([
+      fetch(url).then(async (r) => ({ status: r.status, body: await r.arrayBuffer() })).catch((error) => ({ status: 'aborted', error })),
+      fetch(url).then(async (r) => ({ status: r.status, body: await r.arrayBuffer() })).catch((error) => ({ status: 'aborted', error })),
+    ]);
+
+    const statuses = [a.status, b.status].sort();
+    assert.equal(statuses.filter((s) => s === 200).length, 1, 'exactly one delivery: ' + JSON.stringify(statuses));
+    assert.equal(statuses.filter((s) => s === 410).length, 1, 'the other must be refused: ' + JSON.stringify(statuses));
+
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    assert.equal(share.list().length, 0, 'share is retired after its single download');
+  } finally {
+    await share.close();
+  }
+});
+
+test('an aborted transfer frees its reserved slot without spending a download', async () => {
+  const { filePath } = await fixture('y'.repeat(2 * 1024 * 1024));
+  const share = new ShareServer({ ttlMinutes: 5 });
+  try {
+    const created = await share.add({ filePath, maxDownloads: 1 });
+    const url = 'http://127.0.0.1:' + share.port + '/d/' + created.token;
+
+    // Abort mid-body: the client never received a package, so the link must
+    // still work afterwards instead of reporting itself consumed.
+    const controller = new AbortController();
+    const response = await fetch(url, { signal: controller.signal });
+    const reader = response.body.getReader();
+    await reader.read();
+    controller.abort();
+    await new Promise((resolve) => setTimeout(resolve, 80));
+
+    const retry = await fetch(url);
+    assert.equal(retry.status, 200, 'an aborted download must not consume the share');
+    await retry.arrayBuffer();
+  } finally {
+    await share.close();
+  }
+});

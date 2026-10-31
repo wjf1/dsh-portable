@@ -22,7 +22,7 @@ dsh-portable 三件事一起解决：把白名单内的根打成单个自描述�
 | --- | --- | --- |
 | profile | `profiles/<name>`（配置**和**插件的 `node_modules`） | 总是 |
 | skills | `skills` | 总是 |
-| skills-disabled | `skills-disabled` | 总是 |
+| skills-disabled | `skills-disabled`（宿主已禁用的技能） | **可选，默认不含**（`includeDisabledSkills`） |
 | hooks | `hooks` | 总是 |
 | storages | `storages` | 总是 |
 | 任务板 | task-board / todo-board 存储 | 总是 |
@@ -33,6 +33,8 @@ dsh-portable 三件事一起解决：把白名单内的根打成单个自描述�
 | 凭据 | `.credentials.yaml` | **可选，默认关闭** |
 | source map | 包内 `*.map` | 默认包含（`includeSourceMaps`） |
 | 备份文件 | 配置旁 `*.bak-*` | 默认不含（`includeBackups`） |
+
+> `skills-disabled` 曾是默认包含（在真实机器上占整包 86%），现在与其它可选根一致：默认排除，勾选「已禁用的技能」或传 `includeDisabledSkills: true` 才打包。
 
 表外的路径永远不会被采集 —— 代码里不存在"把整个主目录递归复制一遍"的步骤。
 
@@ -52,10 +54,10 @@ dsh plugin --profile desktop add dsh-portable
 
 六个卡片区：
 
-1. **导出** —— 勾选可选根、给文件起名、点导出。打包跑在 worker 线程里；进度条实时显示条目数，20 MB / 14 000 条目的包约 3 秒。
-2. **包列表** —— `<DSH_HOME>/dsh-portable/exports` 下的所有 `.dshpkg`，显示大小、修改时间，按钮为 选择 / 下载 / 分享 / 删除（删除需二次确认）。**选择**把包标记给下面的导入卡片；**下载**把包直接流给浏览器存盘，方便用 U 盘或文件传输拷到另一台机器——局域网分享只在两台机器同网时可用。
-3. **上传** —— 选一个 `.dshpkg`，流式落盘（先写 `.part` 再改名），带百分比进度，2 GB 的包也不会进内存。
-4. **导入** —— 选 merge 或 replace（当前选中项高亮），**先预览**（零写入），再点「执行导入」，此时会先弹出内联确认块，确认后才真正写入。结果以键值表格呈现：落地项、被重写的路径数、备份目录与 warning，并额外显示插件清单合并结果（本机保留的 bundle、包需要但本机缺失的 bundle）。导入完成后需要重启 DSH，写入的配置才会生效。
+1. **导出** —— 勾选可选根、给文件起名、点导出。打包跑在 worker 线程里；进度条实时显示条目数，20 MB / 14 000 条目的包约 3 秒。填**加密口令**（留空则不加密）可以把整包用 AES-256-GCM 加密——口令丢失无法恢复。
+2. **包列表** —— `<DSH_HOME>/dsh-portable/exports` 下的所有 `.dshpkg`，显示大小、修改时间，按钮为 选择 / 下载 / 分享 / 删除（删除需二次确认），加密包带「已加密」标记。**选择**把包标记给下面的导入卡片；**下载**在面板内分段拉取并显示进度条，支持断点续传（优先直写磁盘，过大的包交给浏览器原生下载器）——局域网分享只在两台机器同网时可用。
+3. **上传** —— 选一个 `.dshpkg`，流式落盘（先写 `.part` 再改名），带百分比进度，2 GB 的包也不会进内存；加密包同样可以上传。
+4. **导入** —— 选 merge 或 replace（当前选中项高亮），**先预览**（零写入），再点「执行导入」，此时会先弹出内联确认块，确认后才真正写入。**子路径选择**：预览后可勾选要导入的顶层项、或在附加框里填包内子路径（如 `skills/my-skill`），两者取并集，留空表示整个包；replace 模式只会把选中的路径移去备份。加密包先填解密口令。结果以键值表格呈现：落地项、被重写的路径数、备份目录、导入范围与 warning，并额外显示插件清单合并结果（本机保留的 bundle、包需要但本机缺失的 bundle）。导入完成后需要重启 DSH，写入的配置才会生效。
 5. **局域网分享** —— 把包发布成一次性下载链接（`http://<内网IP>:<端口>/d/<token>`）。默认 **1 次下载、60 分钟**，支持 Range/HEAD，过期或下完返回 410。**复制**会把链接写进剪贴板，且只有真的写成功才显示「已复制」（纯 HTTP 来源下退回 textarea 方案）。无中继、无云端、无账号。
 6. **备份** —— 导入前自动生成的备份（`<DSH_HOME>/portable-backups/<stamp>`），保留最近 5 份。每份都有**恢复**按钮：把该备份里的文件写回主目录，写回前会先把当前版本另存到 `<stamp>-pre-restore`。恢复后同样需要重启 DSH。
 
@@ -79,13 +81,15 @@ dsh plugin --profile desktop add dsh-portable
 | GET | `/jobs/detail?id=` | 单个任务的实时进度 |
 | POST | `/jobs/cancel` | 取消任务 |
 | POST | `/export` | 开始导出 |
-| GET | `/artifacts` | 可导入的包列表 |
-| GET | `/artifacts/meta?id=` | 单个包的 manifest |
-| GET | `/artifacts/download?id=` | 以附件形式把包流给浏览器（存到本机；`HEAD` 只回头部） |
+| GET | `/artifacts` | 可导入的包列表（含 `encrypted` 标记） |
+| GET | `/artifacts/meta?id=` | 单个包的 manifest（加密包回 `400 ENCRYPTED`，口令不进 URL） |
+| GET | `/artifacts/download?id=` | 以附件形式把包流给浏览器；支持 `Range`/`If-Range`（`206` 断点续传）与 `HEAD` |
 | POST | `/artifacts/delete` | 删除包（UI 里二次确认） |
 | PUT | `/upload/<name>` | 上传包，流式落盘 |
 | POST | `/import/preview` | 两阶段安装第一阶段（零写入） |
 | POST | `/import` | 两阶段安装第二阶段（必须 `confirm:true`） |
+
+`/export`、`/import/preview`、`/import` 共用这些可选字段：`include`（包内逻辑路径前缀数组，如 `["skills/my-skill"]`，只导出/导入所选子路径）、`passphrase`（加密包口令，随请求体走，不进 URL、不进任务描述）。
 | GET | `/backups` | 自动备份列表 |
 | POST | `/backups/restore` | 把某份备份写回主目录（写回前先另存当前文件） |
 | POST | `/share` | 生成一次性局域网下载链接 |
@@ -100,9 +104,9 @@ dsh plugin --profile desktop add dsh-portable
 
 | 工具 | 行为 |
 | --- | --- |
-| `portable_export` | 打包当前 profile，返回 id、大小、条目数、各根统计 |
-| `portable_inspect` | 只读 manifest，不导入 |
-| `portable_import` | **不带 `confirm:true` 就是 dry-run**；带上才真正两阶段安装 |
+| `portable_export` | 打包当前 profile，返回 id、大小、条目数、各根统计；支持 `passphrase`（加密）与 `include`（子路径） |
+| `portable_inspect` | 只读 manifest，不导入；加密包传 `passphrase` |
+| `portable_import` | **不带 `confirm:true` 就是 dry-run**；带上才真正两阶段安装；支持 `include`（子路径）与 `passphrase` |
 | `portable_share` | 生成一次性局域网链接（1 次下载、60 分钟） |
 
 ## 无宿主引导安装（目标机没装 DSH）
@@ -117,7 +121,7 @@ sh bootstrap/install.sh preview ./machine.dshpkg
 sh bootstrap/install.sh install ./machine.dshpkg --yes
 ```
 
-参数：`--home <目录>`（默认 `$DSH_HOME` 或 `~/.dsh`）、`--profile <名>`、`--mode merge|replace`、`--keep <n>`、`--yes`。退出码：`0` 成功、`1` 失败、`2` 用法错误；非 TTY 且没有 `--yes` 时拒绝写入。
+参数：`--home <目录>`（默认 `$DSH_HOME` 或 `~/.dsh`）、`--profile <名>`、`--mode merge|replace`、`--keep <n>`、`--passphrase <口令>`（加密包）、`--include <子路径>`（可重复）、`--yes`。退出码：`0` 成功、`1` 失败、`2` 用法错误；非 TTY 且没有 `--yes` 时拒绝写入。
 
 ## 包格式
 
@@ -152,6 +156,8 @@ hooks/hooks.json
 
 因为就是普通 tar，`tar -xzf machine.dshpkg` 在任何机器上都能直接看包里的内容 —— 哪怕那台机器从没听说过 DSH。长路径走 PAX 扩展头，读取端是增量解析，PAX 正文跨 chunk 也能正确处理。
 
+**加密包**（导出时填了口令）整体是一层 AES-256-GCM 容器：`magic "DSHPKG-ENC1\n"` + scrypt 盐(32B) + iv(12B) + 密钥确认块 + 密文 + 包尾 16B 认证标签，密钥由口令经 scrypt（N=2¹⁵）派生，全程流式。加密包**不是**明文 tar，`tar -xzf` 看不到内容；口令错误在读取最开始就会被拒绝（报「wrong passphrase or corrupted package」），篡改任何一个字节都无法通过认证。口令没有恢复途径——丢了就等于丢了包。
+
 ## 导入流水线
 
 ```text
@@ -177,16 +183,17 @@ hooks/hooks.json
 - **白名单采集。** 代码里不存在递归遍历整个主目录的逻辑。
 - **只认 artifactId，不认路径。** 见上。
 - **导入必须确认。** 缺 `confirm:true` 的路由返回 `400 CONFIRM_REQUIRED`；模型工具默认 dry-run。
+- **可选口令加密。** 导出时可给整包加 AES-256-GCM（scrypt 派生密钥，见「包格式」）；错误口令立即拒绝，篡改无法通过认证。口令随请求体传递，不进 URL、不进任务描述。
 - **解包防护。** 200 000 条目上限、单文件 2 GB、总解压 8 GB、压缩比 200（输出超 64 MB 后才生效）、`wx` 不覆盖、`safeJoin` 挡 `..`、符号链接为绝对路径或越界时拒绝；合并落地时再次校验符号链接目标，绝不还原指向主目录之外的链接。
 - **逐文件校验。** 包尾 `checksums.json` 收录每个文件的 sha256，导入时比对，不一致直接失败。
-- **写之前先备份。** 六个配置文件先复制到备份目录；replace 模式把整个目录移进 `portable-backups/<stamp>/replaced/`，不是删除。
+- **写之前先备份。** 六个配置文件先复制到备份目录；replace 模式把要替换的目录移进 `portable-backups/<stamp>/replaced/`，不是删除；子路径选择时只移走所选路径本身。
 - **凭据默认不进包。** `.credentials.yaml` 只有显式勾选才打包，面板上的勾选框直接标注风险。导出是纯本地操作，不上传任何数据。
 - **分享链接范围极小。** 一次下载、60 分钟、单文件、token 门禁，之后 410。没有目录列举，没有中继。
 
 ## 开发
 
 ```bash
-npm test          # 60 项：tar、archive、installer、jobs、routes、share、inspect
+npm test          # 89 项：tar、archive、crypto、installer、jobs、routes、share、inspect
 npm run check     # 语法检查 + import 冒烟
 npm run sync      # 把本包拷进某个 profile 的 node_modules 做真机联调
 npm run verify    # 发布门禁：版本一致、文件清单、测试
@@ -203,8 +210,8 @@ npm run verify    # 发布门禁：版本一致、文件清单、测试
 ## 已知限制
 
 - 会话日志默认不进包，因为里面有对话内容。
-- 包是 tar，不加密也不签名；含凭据时请放在加密介质上。
-- 导入只能按顶层根整体 merge 或 replace，v0.1.x 没有单文件选择器。
+- 加密是可选项且无签名：不填口令的包是明文 tar，含凭据时请加密导出或放在加密介质上；口令一旦丢失无法恢复。
+- 子路径选择器按**逻辑路径前缀**匹配（目录/文件级），不支持通配符。
 - 指向 DSH 主目录之外的符号链接会被打进包，但在 Windows 上没有开发者模式时无法重建 —— 这种情况记 warning，不中断导入。
 
 ## 许可

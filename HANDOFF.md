@@ -1,7 +1,7 @@
 # HANDOFF — dsh-portable 接力开发文档
 
 > 新会话接手：先读本文件，再读 `README.md`（行为契约）与 `CHANGELOG.md`（当前版本做了什么），最后才看代码。
-> 最后更新：2026-10-20 · 版本 0.1.10
+> 最后更新：2026-10-31 · 版本 0.1.10（Unreleased 四项功能已完成，待下次发版打 tag）
 
 ---
 
@@ -16,7 +16,7 @@
 | 维度 | 状态 |
 | --- | --- |
 | 功能完整度 | 导出（带百分比）/ 下载到本机 / 预览 / 导入（merge、replace，带二次确认与 package.json 合并）/ 上传（百分比）/ 局域网分享 / 备份（可恢复）/ 任务可取消 / 刷新后接管运行中任务 / 导入与恢复提示重启 / 四个模型工具 / 设置页面板 —— 全部落地 |
-| 测试 | `npm test` 60 项全绿（tar 11、archive 6、installer 8、jobs 2、routes 24、share 8、inspect 1） |
+| 测试 | `npm test` 89 项全绿（tar 11、archive 7、crypto 7、installer 12、jobs 2、routes 33、share 8、inspect 1） |
 | 真实数据验证 | 对本机 `C:\\Users\\admin\\.dsh` 真导出：20 664 511 字节 / 13 774 条目 / 2.8 秒；再对临时 home 真安装：9 个顶层项全部落地、13491 文件、3 个文件 3 处路径被重写 |
 | 发布状态 | **已发布 0.1.0 / … / 0.1.10**：0.1.10（补 28 项清单里最后 5 项：上传输入禁用、删除用函数式 `setSelected`、刷新后接管 `busyJobId`、导入/恢复提示「需要重启 DSH」、`readManifest`/`extractPackage` 的 source 错误转发给 `gunzip`（缺失文件报 `ENOENT` 而不是「缺 manifest」），60 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.10>）· 0.1.9（补审计清单最后一项 P3-6：`notice` 成功提示 4 秒自动收起、`copyText` 超时计时器用 `try/finally` 释放，59 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.9>）· 0.1.8（按同类问题审计清单逐项收口：`package.json` 合并真正接入 install 路径、备份恢复不再覆盖没有应急副本的文件、Range 完整区间才计数、`JOB_BUSY` 409、失败导入清理 staging、面板任务可取消 / 请求 60 秒超时 / 导出百分比 / 插件清单合并展示，59 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.8>，tag 触发 release.yml 自动 npm publish）· 0.1.7（修「预览变更没反应」：任务失败的错误改用 `refresh().finally(...)` 兜底显示，上传落盘前用 `readManifest` 校验、截断包直接 400 `BAD_ARCHIVE`，50 项测试全绿）· 0.1.6（真机走查修复：任务终态改用 `succeeded`，进度条不再不收尾导致整面板按钮永久禁用；剪贴板写入加 1.5 秒超时兜底，49 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.6>）· 0.1.5（面板可用性修复：备份恢复、导入二次确认、上传进度、真正写剪贴板、导入结果表格化、凭据警示，49 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.5>，tag 触发 release.yml 自动 npm publish）· 0.1.4（新增「下载」按钮与 `GET /artifacts/download` 路由，46 项测试全绿，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.4>，tag 触发 release.yml 自动 npm publish）· 0.1.3（24 文件 / shasum `6dd21365…` / 200529 B 解包，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.3>，ci + release 全绿，本机 profile 已升到 `^0.1.3`）· 0.1.2（24 文件 / shasum `6d1db122…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.2>，ci + release 全绿，本机 profile 已升到 `^0.1.2`）· 0.1.1（24 文件 / shasum `660369b0…`，Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.1>，release.yml run 39103118643 真跑 npm publish）· 0.1.0 详情：npm <https://www.npmjs.com/package/dsh-portable>（24 文件 / 60.2 kB / shasum `1684d7b8…`）、GitHub Release <https://github.com/wjf1/dsh-portable/releases/tag/v0.1.0>、tag `v0.1.0`；线上安装 + `import('dsh-portable')` 冒烟通过 |
 | 本机集成 | desktop profile 里已用 `npm install dsh-portable --legacy-peer-deps` 装好（`dependencies` 有记录、`dsh.profile.bundles` 有条目），面板在 设置 → 便携迁移。**2026-10-18 21:33 已按计划重启收尾**：临时热挂载条目 `mkt-dsh-portable` 已从 `<profile>/cordis.patch.yml` 删除（备份 `.bak-20261018-restart`），重启后由 bundle 层正式加载一份实例，`/dsh-portable/api/status` 回 403（身份闸）、未知路径 404，模型工具 `portable_export` 在真机上导出 118 MB / 14 841 条目成功。**踩过的坑**：早先手工拷贝的目录被同 profile 的 `npm install` 当 extraneous 清掉，插件静默消失、面板只剩 `HTTP 404` |
@@ -38,9 +38,10 @@ dsh-portable/
 ├─ cordis.patch.yml         插件注册补丁（- insert: id=dsh-portable, name=dsh-portable）
 ├─ package.json             dsh.bundle.patch 指向补丁；dsh.client.platform=web
 ├─ lib/
-│  ├─ collect.mjs           白名单采集：sourceRoots + collectEntries（async generator）
+│  ├─ collect.mjs           白名单采集：sourceRoots + collectEntries（async generator）、include 子路径选择与剪枝
 │  ├─ tar.mjs               tar 读写：PAX 长路径、增量 pad、hdr/body 状态机
 │  ├─ archive.mjs           writePackage（.part+rename 原子写）/ readManifest / extractPackage
+│  ├─ crypto.mjs            口令加密容器：AES-256-GCM + scrypt，密钥确认块 + 包尾 tag
 │  ├─ rewrite.mjs           6 个配置文件的路径重写 + package.json 合并
 │  ├─ installer.mjs         preview（dry-run）/ install（暂存→重写→备份→落地→清理）
 │  ├─ jobs.mjs              JobManager + worker_threads 调度，HEAVY_KINDS 串行化
@@ -66,9 +67,18 @@ dsh-portable/
 - 配置解析顺序：`config.profile` → `ctx.get('profileContext').name` → `DSH_PROFILE` → `desktop`。
 - 对外服务一律 `ctx.get('svc')`，未在 `inject` 里声明的属性直接访问会抛。
 
-## 4. 最近一轮变更与交付成果（0.1.10）
+## 4. 最近一轮变更与交付成果
 
-**0.1.10（当前）**：把 28 项清单里最后漏掉的 5 项补齐。① 上传输入此前在上传中仍可选文件，第二次点击被 `uploadBusy` 静默丢弃，现在 `disabled`；② `deleteArtifact` 捕获的是闭包里的旧 `selected`，删掉当前选中的包不会清空导入卡片，改用函数式 `setSelected`；③ 面板刷新后不恢复 `busyJobId`，进度条消失、按钮全可点，现在 `refresh` 读到 `busyJobId` 时取 `/jobs/detail` 并复用 `follow` 接管；④ 导入与备份恢复写入的是配置文件，要重启 DSH 才生效，两处提示都追加「需要重启 DSH 才会生效」；⑤ `readManifest` / `extractPackage` 的 `createReadStream` 错误没有转发给 `gunzip`，`pipe` 吞掉后调用方拿到的是「missing manifest」（指向包内容而不是坏路径），还可能因未处理的 `error` 事件让进程退出——现在 `source.on('error', ...)` 直接 `gunzip.destroy(error)`，新增 1 项测试断言缺失文件抛 `ENOENT`，全量 60 项通过。
+**Unreleased（当前，四项待办全部落地，未打 tag）**：待办 4/5/6/8（第 5 节）逐项完成，四个独立 commit，`npm test` 89 项全绿。
+
+1. **禁用技能排除开关**（43d2482）：`skills-disabled` 从无条件包含改为可选开关语义——`includeDisabledSkills` 默认 `false`（默认排除，真实机器上占整包 86%）。collect/routes/tools/client 四层接线，面板导出卡新增复选框；README「包里装什么」表格标注默认值变化。
+2. **口令加密**（be28055）：新增 `lib/crypto.mjs`（AES-256-GCM + scrypt N=2¹⁵，零依赖）。容器 = magic(12) + salt(32) + iv(12) + **密钥确认块**(nonce 12 + ct 23 + tag 16) + 密文 + 包尾 tag(16)；密钥确认块在头部用独立 nonce 加密固定明文，**错误口令在读取最开始即被拒绝**（否则错误口令解出乱码、zlib 先报 `incorrect header check`，用户看到的是误导性错误）。`readManifest`/`extractPackage`/`writePackage`/preview/install/三路由/三工具/bootstrap `--passphrase` 全链路；上传对加密容器只做形状检查；`/artifacts` 列表带 `encrypted` 标记、`/artifacts/meta` 对加密包回 `400 ENCRYPTED`；面板导出口令输入 + 列表标记 + 导入卡解密口令。口令不进 URL、不进 `describeArgs`。
+3. **单文件/子路径选择器**（2582cf1）：`include` 逻辑路径前缀数组贯通导出与导入。`normalizeInclude`（collect.mjs）清洗校验；`branchAlive` 在扫描层剪掉不可能含选中路径的整棵目录树；解包层在调用方钩子前丢弃未选中条目；**replace 替换单元改为所选前缀本身**（含 profile 改名映射、先父后子排序），选中 `skills/one` 不再把整个 `skills` 移去备份。API `400 BAD_INCLUDE`；面板预览后勾选顶层项 + 附加子路径（并集语义）；bootstrap `--include` 可重复。
+4. **下载 Range 断点续传**（4ca6c30）：`parseRange` 从 share.mjs 导出复用；下载路由补 `accept-ranges`/`etag`/`last-modified`、`206`+`content-range`、后缀段、`416`、`If-Range`（强 ETag 或整秒 mtime 失配 → 忽略 Range 回 `200` 全量）。面板下载 = HEAD 探测 + 8 MiB 分段 Range + 行内进度条，单段失败从断点重试 3 次；优先 File System Access API 直写磁盘（在点击手势内先弹保存框，保住 user activation），否则缓冲至 1.5 GiB、再大交浏览器原生下载器。
+
+文档同步：双语 README（默认值表、面板用法、API 字段、包格式加密容器、安全模型、限制、测试数）、CHANGELOG `## Unreleased`（新增 3 条 + 变更 1 条 + 测试）、本文件第 1/3/4/5/6 节。
+
+**0.1.10**：把 28 项清单里最后漏掉的 5 项补齐。① 上传输入此前在上传中仍可选文件，第二次点击被 `uploadBusy` 静默丢弃，现在 `disabled`；② `deleteArtifact` 捕获的是闭包里的旧 `selected`，删掉当前选中的包不会清空导入卡片，改用函数式 `setSelected`；③ 面板刷新后不恢复 `busyJobId`，进度条消失、按钮全可点，现在 `refresh` 读到 `busyJobId` 时取 `/jobs/detail` 并复用 `follow` 接管；④ 导入与备份恢复写入的是配置文件，要重启 DSH 才生效，两处提示都追加「需要重启 DSH 才会生效」；⑤ `readManifest` / `extractPackage` 的 `createReadStream` 错误没有转发给 `gunzip`，`pipe` 吞掉后调用方拿到的是「missing manifest」（指向包内容而不是坏路径），还可能因未处理的 `error` 事件让进程退出——现在 `source.on('error', ...)` 直接 `gunzip.destroy(error)`，新增 1 项测试断言缺失文件抛 `ENOENT`，全量 60 项通过。
 
 **0.1.9**：补审计清单的最后一项 P3-6（纯前端计时器）。`notice` 成功提示（导出完成 / 上传完成 / 备份已恢复）原本会永久留在面板顶部，下一次操作的反馈会叠在旧提示下面；现在 4 秒自动收起，并在 `notice` 重置或组件卸载时清掉计时器。`copyText` 里 1.5 秒超时用的 `setTimeout` 在 `navigator.clipboard.writeText` 成功时不会释放，页面留下悬空计时器；现在用 `try/finally` 保证 `clearTimeout`。无 API 变更，`node --check` + 59 项测试全过。
 
@@ -126,14 +136,14 @@ dsh-portable/
 1. ~~重启 DSH 收尾集成~~（已完成 2026-10-18 21:33）：临时热挂载条目 `mkt-dsh-portable` 已从 `<profile>/cordis.patch.yml` 删除并备份为 `.bak-20261018-restart`，重启后由 bundle 层正常加载（新端口 52803，`/dsh-portable/api/status` 回 403 = 路由已挂载）。
 2. ~~市场 PR~~（已提交 2026-10-19 22:33）：PR [awesome-dsh-plugin#8129](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/8129)「Add wjf1/dsh-portable」，仅新增 `data/plugins/wjf1__dsh-portable.yml`（+6 行，0 删除），CI 全绿（stale-fork guard、awesome-lint、READMEs/data 一致性、build 均 success），现在等维护者评审合并。**注意**：本机 git HTTPS 直连克隆会被重置（`curl 56 Recv failure`），实际提交走的是 GitHub REST API（`gh api` 建 ref + PUT contents + `gh pr create`）；后续同步 fork 也优先走 API 或 `git -c http.proxy=`。
 3. ~~截图~~（已完成 2026-10-19）：两张面板截图已脱敏并入仓 —— `assets/panel-export.png`（导出卡片 + 包列表）与 `assets/panel-import-share.png`（上传 / 导入 / 局域网分享 / 备份）。脱敏点：图 B 的主目录 `C:\Users\admin\.dsh` 已改为 `C:\Users\you\.dsh`；图 A 的分享链接真实内网 IP `192.168.0.1`、端口 `60571` 与 32 位 token 已整体替换为示例值（`http://192.168.1.10:60571/d/` + 32 个 `0`）。同时新增仓库根 `screenshots.json`（2 张相对路径，市场详情页按此展示），双语 README 各加「界面截图 / Screenshots」小节。原计划 3 张里的「导入预览」「分享链接」由含导入与分享的同一张图覆盖，不再单拆。
-4. **性能**：`skills-disabled` 在本机占 44.6 MB（整包 86%）。可考虑"默认排除已被禁用技能"的开关。
-5. **加密**：当前包是明文 tar。凭据入包时应支持口令加密（AES-256-GCM + scrypt）。
-6. **单文件选择器**：v0.1.x 只能按顶层根整体导入，后续可支持勾选具体子路径。
-7. **e2e 测试**：目前 installer 用临时目录 + fixture，缺"真实 profile 装完能被 DSH 启动"的验证。
-8. **下载的后续改进**（0.1.4 已落地主体）：当前 `GET /artifacts/download` 整文件流式发送，未实现 Range 断点续传，也没有面板内进度条——500 MB 以上的包只能看浏览器自己的下载提示。可复用分享路由里已有的 Range/HEAD 处理。
+4. ~~性能：`skills-disabled` 排除开关~~（已完成 2026-10-31，commit 43d2482）：`includeDisabledSkills` 默认 `false`，默认排除（本机占整包 86%）；面板复选框 + `/export` + `portable_export` 三层接线。
+5. ~~加密：口令加密导出/导入~~（已完成 2026-10-31，commit be28055）：`lib/crypto.mjs` AES-256-GCM + scrypt，密钥确认块让错误口令立即报错；面板/API/工具/bootstrap 全链路；真机走查留待下批（见第 10 条）。
+6. ~~单文件选择器~~（已完成 2026-10-31，commit 2582cf1）：`include` 前缀选择器贯通导出与导入；replace 模式只移走所选路径；面板预览后勾选顶层项 + 附加子路径；bootstrap `--include` 可重复。真机走查留待下批。
+7. **e2e 测试**：目前 installer 用临时目录 + fixture，缺"真实 profile 装完能被 DSH 启动"的验证。**留待真机批次**：需重启 DSH 的环境（与第 10 条同一批做），顺带覆盖加密包与子路径导入的真机端到端。
+8. ~~下载的后续改进~~（已完成 2026-10-31，commit 4ca6c30）：`/artifacts/download` 支持 `Range`/`If-Range`/`206`/`416`/`HEAD`，复用分享路由的 `parseRange`；面板 HEAD 探测 + 8 MiB 分段拉取 + 行内进度条 + 断点重试。真机走查留待下批（进度条与取消交互需真实点击验证）。
 9. ~~0.1.5 真机走查~~（已完成 2026-10-20，产物是 0.1.6 / 0.1.7）：按清单在真机上逐项点了面板 —— 下载链接指向 `GET /artifacts/download?artifactId=exports%3A…` 且带 `download` 文件名；「选择」后导入卡显示当前包；「执行导入」先出内联确认块（确认写入？/ merge 与 replace 说明 / 覆盖同名文件警告 / 确认导入 + 取消）；「分享」生成一次性链接并自动尝试写剪贴板（无聚焦环境下会降级提示「复制失败：请手动选中链接复制。」，按钮「复制链接」可重试）；勾「凭据文件」出红字警示；上传卡 hint 与百分比行就位。走查还揪出 0.1.6 修的两个缺陷（进度条不收尾、剪贴板挂起），见第 4 节。**二轮（2026-10-20 晚）**：用户报「预览变更点了没反应」，用不带 UI 的 fetch 直接打 `/import/preview` 复现出 job `failed`（`unexpected end of file`），再对照前端代码发现错误被 `refresh()` 清掉 —— 0.1.7 同时修了错误显示与上传完整性校验。
 
-10. **0.1.10 真机走查**（待做，需重启后）：确认上传中输入框禁用、刷新页面能接回运行中的任务、导入/恢复提示带「需要重启 DSH」、导出进度有百分比、任务可取消、失败任务错误常驻、导入结果有「插件清单合并」行、`HEAD /artifacts/download` 回 200 空 body、备份恢复保留 `-pre-restore`。
+10. **0.1.10 真机走查**（待做，需重启后）：确认上传中输入框禁用、刷新页面能接回运行中的任务、导入/恢复提示带「需要重启 DSH」、导出进度有百分比、任务可取消、失败任务错误常驻、导入结果有「插件清单合并」行、`HEAD /artifacts/download` 回 200 空 body、备份恢复保留 `-pre-restore`。**与 Unreleased 四项同批**：导出卡的 skills-disabled 复选框与加密口令输入、包列表「已加密」标记与分段下载进度条（含取消）、导入卡顶层项勾选/附加子路径/解密口令、错误口令与子路径缺失的真实报错文案；e2e（第 7 条）也并入这批。
 
 ## 6. 关键避坑与运行约束
 
@@ -141,6 +151,8 @@ dsh-portable/
 - **`-pre-restore` 不能进备份保留预算**：`pruneBackups` 若把 `*-pre-restore` 当普通快照计数，`keep:0` 会把「唯一能反悔的副本」删掉；stamp 正则要区分 `^\d{8}-\d{6}$` 与 `-pre-restore`，只对前者计数。
 - **回调里读 state 要小心闭包**：`deleteArtifact` 捕获的是按下那一刻 render 的 `selected`，连点或并发删除时会用旧值判断；改 `setSelected((current) => current === id ? null : current)` 才是当前值。
 - **`pipe` 不会转发 source 的错误**：`createReadStream` 的 `error` 必须显式 `gunzip.destroy(error)`，否则 `for await` 只看到流提前结束，报「missing manifest」这种指错方向的错误，未处理的 `error` 事件还会让进程退出。
+- **错误口令必须「先验密钥再喂数据」**：GCM 的认证标签要到流末尾才算得出，而错误口令会解出乱码——乱码先进 gunzip 的话，zlib 的 `incorrect header check` 会抢在认证错误之前冒出来，用户看到的是「包坏了」而不是「口令错了」。所以加密容器头部带一个密钥确认块（独立 nonce 加密固定明文），解密端先开这个盒子再放行任何包数据（`lib/crypto.mjs`）。同理，密文体被篡改时 gunzip 也会先报 zlib 错，`archive.mjs` 的 `translateEncryptedFailure` 负责把它翻译成完整性错误。
+- **include + replace 的替换单元必须是所选前缀**：如果按顶层项移动 aside，选中 `skills/one` 会把整个 `skills` 移去备份，其余技能从活动目录消失。`lib/installer.mjs` 在有 include 时按前缀为单元（先父后子、profile 改名映射），`replaced/<前缀>` 里只放真正被替换的路径。
 
 - **失败任务的消息会被 refresh 吃掉**：`refresh()` 成功时第 462 行 `setError(null)`；`follow` 若先 `setError(...)` 再 `void refresh()`，错误只活一帧，用户看到的是「点了没反应」。失败分支要用 `void refresh().finally(() => setError(message))`（0.1.7）。排查这类「无反应」先看 `follow` 的终态分支与 `refresh` 的清理顺序，再看 job 的 `error.message`。
 - **上传必须校验 manifest**：`receiveUpload` 的 `pipeline` 成功只代表字节写完，不代表包完整；截断包（521.5 MB 只传了 22.7 MB）会让之后每次预览 / 导入报 `unexpected end of file`（`Z_BUF_ERROR`）。落盘前 `readManifest(part)` 一次，失败 `rm(part)` 并回 400 `BAD_ARCHIVE`（0.1.7）。

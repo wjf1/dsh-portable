@@ -14,8 +14,18 @@
 
 ### 新增
 
-- **`.dshpkg` 文件级 sha256 校验**（`lib/archive.mjs`）：打包时边写边算，包尾写一个 `.dsh-portable/checksums.json`；导入时边写边算并与它比对，任何一个文件不一致就拒绝导入（不再静默还原坏数据）。没有该条目的旧包仍可导入，`stats.verified` 为 `false` 并记一条 warning。校验清单放在包尾而不是 manifest 里，是为了保住「读 manifest 只花几 KB」这个用于预览/检查的约定。
+- **口令加密导出/导入**（`lib/crypto.mjs`、`lib/archive.mjs`）：导出时填口令即把整包包进 AES-256-GCM 容器（scrypt N=2¹⁵ 派生密钥，零第三方依赖，全程流式）。容器头部带密钥确认块，错误口令在读取最开始就被拒绝并报「wrong passphrase or corrupted package」而不是 zlib 的 `incorrect header check`；篡改任何字节都无法通过认证，解包时翻译为完整性错误。`/export`、`/import`、`/import/preview` 与 `portable_export/inspect/import`、bootstrap `--passphrase` 全链路透传；面板有导出口令输入、包列表「已加密」标记、导入卡解密口令输入；上传对加密容器只做形状检查（manifest 在密文里，验不了）。口令随请求体传递，不进 URL、不进任务描述。附往返/错口令/篡改/截断等 7 项测试。
+- **单文件/子路径选择器**（`lib/collect.mjs`、`lib/archive.mjs`、`lib/installer.mjs`）：导出与导入都接受逻辑路径前缀数组 `include`（如 `["skills/my-skill"]`），等于前缀或位于其下的条目才参与。扫描层带 `branchAlive` 剪枝（include 导出不再全量 stat 无关目录）；解包层在调用方钩子前丢弃未选中条目；**replace 模式的替换单元改为所选前缀本身**（含 profile 改名映射），选中 `skills/one` 绝不会把整个 `skills` 移去备份，包里不存在的选中路径记 warning 不失败。API 层坏格式回 `400 BAD_INCLUDE`；面板导入卡预览后可勾选顶层项 + 附加子路径输入（并集语义），结果表格新增「导入范围」行；bootstrap 新增可重复的 `--include`。附 6 项测试。
+- **下载断点续传与面板进度条**（`lib/routes.mjs`、`lib/client.js`）：`GET /artifacts/download` 复用分享路由的 `parseRange`（已导出），补 `accept-ranges`/`etag`/`last-modified` 头，支持单段/后缀 Range（`206` + `content-range`）、不可满足段 `416`、`If-Range`（强 ETag 或整秒 Last-Modified 失配时忽略 Range 回 `200` 全量，绝不拼接两个版本的文件）。面板下载改为 HEAD 探测 + 8 MiB 分段 Range 拉取 + 行内进度条，单段失败从断点重试 3 次（真续传）；优先经 File System Access API 直写磁盘，不可用时缓冲到 1.5 GiB 上限、再大交给浏览器原生下载器；进度条行内可取消。附 5 项路由测试。
 - 导出/预览解包（`extractPackage`、`writePackage`、`install`）都接受 `AbortSignal`，长任务可协作式中止。
+
+### 变更
+
+- **导出默认不再打包 `skills-disabled`**（`lib/collect.mjs`）：该根从无条件包含改为可选开关语义（与 sessions/runtimes/credentials/backups 一致）。宿主已禁用的技能在真实机器上占整包 86%（44.6 MB），默认排除即省下这部分体积；需要时勾选「已禁用的技能」或传 `includeDisabledSkills: true`。这是默认行为的改变：从旧版本升级后，导出的包会变小，已禁用技能需显式勾选才会迁移。
+
+### 测试
+
+- 60 → 89 项全绿：新增 `includeDisabledSkills` 默认排除/开关断言、加密模块 7 项（往返、缺口令、错口令、篡改密文体、篡改 tag、截断、明文包容错与布局自检）、加密上传与列表标记 2 项、子路径选择器 6 项（merge 只落所选、replace 不伤兄弟、缺路径警告、normalizeInclude 校验、API 校验、透传）、下载 Range 5 项（206 切片、后缀段、416、If-Range 匹配/失配、开放段）。
 
 ### 移除
 

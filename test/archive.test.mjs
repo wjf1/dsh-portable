@@ -89,6 +89,42 @@ test('honours includeNodeModules and includeSessions', async () => {
   await rm(dest, { recursive: true, force: true });
 });
 
+test('excludes skills-disabled by default and honours includeDisabledSkills', async () => {
+  const home = await makeHome();
+  await mkdir(path.join(home, 'skills-disabled', 'old-skill'), { recursive: true });
+  await writeFile(path.join(home, 'skills-disabled', 'old-skill', 'SKILL.md'), '# disabled\n');
+  const source = { hostname: 'h', platform: process.platform, arch: process.arch, node: process.version, dshHome: home, profile: 'demo', dshVersion: '' };
+
+  // Default: the host has disabled these skills, so they stay out of the
+  // package (they used to be unconditional and were most of its size).
+  const lean = path.join(home, 'exports', 'lean.dshpkg');
+  const leanResult = await writePackage({
+    dshHome: home, profileName: 'demo', outPath: lean, tool: TOOL, source,
+    options: { ...BASE_OPTIONS, includeDisabledSkills: false },
+  });
+  assert.equal(leanResult.manifest.options.includeDisabledSkills, false);
+  assert.equal(leanResult.manifest.roots.some((root) => root.id === 'skillsDisabled'), false, '排除的根不应出现在 manifest.roots');
+  const leanDest = await mkdtemp(path.join(tmpdir(), 'dp-nodis-'));
+  await extractPackage({ filePath: lean, destDir: leanDest });
+  assert.equal(await exists(path.join(leanDest, 'skills-disabled')), false);
+  assert.equal(await exists(path.join(leanDest, 'skills', 'demo-skill', 'SKILL.md')), true, '启用中的技能不受影响');
+
+  // Opt in: the flag brings the disabled skills back.
+  const full = path.join(home, 'exports', 'full.dshpkg');
+  const fullResult = await writePackage({
+    dshHome: home, profileName: 'demo', outPath: full, tool: TOOL, source,
+    options: { ...BASE_OPTIONS, includeDisabledSkills: true },
+  });
+  assert.equal(fullResult.manifest.options.includeDisabledSkills, true);
+  const fullDest = await mkdtemp(path.join(tmpdir(), 'dp-widis-'));
+  await extractPackage({ filePath: full, destDir: fullDest });
+  assert.equal(await readFile(path.join(fullDest, 'skills-disabled', 'old-skill', 'SKILL.md'), 'utf8'), '# disabled\n');
+
+  await rm(home, { recursive: true, force: true });
+  await rm(leanDest, { recursive: true, force: true });
+  await rm(fullDest, { recursive: true, force: true });
+});
+
 test('dry run skips entries without writing them', async () => {
   const home = await makeHome();
   const out = path.join(home, 'exports', 'demo.dshpkg');

@@ -32,6 +32,8 @@ const USAGE = [
   '  --mode <kind>      merge (default) keeps files the package does not carry;',
   "                     replace moves the target's copies aside first",
   '  --passphrase <pw>  passphrase for an encrypted package',
+  '  --include <path>   import only this package-relative sub-path (repeatable,',
+  '                     e.g. --include skills/my-skill)',
   '  --yes              skip the confirmation prompt',
   '  --keep <n>         how many backups to retain (default 5)',
   '  --help             show this text',
@@ -44,13 +46,13 @@ function fail(message, code = 1) {
 }
 
 function parse(argv) {
-  const out = { command: null, packagePath: null, home: null, profile: null, mode: 'merge', yes: false, keep: 5, passphrase: null };
+  const out = { command: null, packagePath: null, home: null, profile: null, mode: 'merge', yes: false, keep: 5, passphrase: null, include: [] };
   const rest = argv.slice(2);
   for (let i = 0; i < rest.length; i += 1) {
     const token = rest[i];
     if (token === '--help' || token === '-h') { process.stdout.write(USAGE); process.exit(0); }
     if (token === '--yes' || token === '-y') { out.yes = true; continue; }
-    if (token === '--home' || token === '--profile' || token === '--mode' || token === '--keep' || token === '--passphrase') {
+    if (token === '--home' || token === '--profile' || token === '--mode' || token === '--keep' || token === '--passphrase' || token === '--include') {
       const value = rest[i + 1];
       if (value === undefined) fail(token + ' needs a value');
       i += 1;
@@ -59,6 +61,7 @@ function parse(argv) {
       if (token === '--mode') out.mode = value;
       if (token === '--keep') out.keep = Number(value);
       if (token === '--passphrase') out.passphrase = value;
+      if (token === '--include') out.include.push(value);
       continue;
     }
     if (token.startsWith('-')) fail('unknown option ' + token);
@@ -128,7 +131,10 @@ async function main() {
 
   let plan;
   try {
-    plan = await preview({ filePath: args.packagePath, dshHome: home, profileName: args.profile ?? undefined, passphrase: args.passphrase ?? undefined });
+    plan = await preview({
+      filePath: args.packagePath, dshHome: home, profileName: args.profile ?? undefined,
+      passphrase: args.passphrase ?? undefined, include: args.include,
+    });
   } catch (error) {
     process.stderr.write('\n');
     fail('the package was refused: ' + error.message, 2);
@@ -169,7 +175,10 @@ async function main() {
 
   let result;
   try {
-    result = await install({ filePath: args.packagePath, dshHome: home, profileName: targetProfile, mode: args.mode, keepBackups: args.keep, onProgress, passphrase: args.passphrase ?? undefined });
+    result = await install({
+      filePath: args.packagePath, dshHome: home, profileName: targetProfile, mode: args.mode,
+      keepBackups: args.keep, onProgress, passphrase: args.passphrase ?? undefined, include: args.include,
+    });
   } catch (error) {
     process.stderr.write('\n');
     fail('install failed: ' + error.message, 2);

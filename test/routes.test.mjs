@@ -569,3 +569,53 @@ test('an encrypted upload passes the container sanity check', async () => {
     await ctx.close();
   }
 });
+
+/* ------------------------------------------------------ sub-path selection */
+
+test('export and import validate the include selector', async () => {
+  const ctx = await harness();
+  try {
+    const bad = await fetch(ctx.base + '/export', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ include: '../escape' }),
+    });
+    assert.equal(bad.status, 400);
+    assert.equal((await bad.json()).code, 'BAD_INCLUDE');
+
+    const badImport = await fetch(ctx.base + '/import/preview', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ artifactId: 'exports:x.dshpkg', include: [42] }),
+    });
+    assert.equal(badImport.status, 400);
+    assert.equal((await badImport.json()).code, 'BAD_INCLUDE');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('export and import pass a cleaned include into the job', async () => {
+  const ctx = await harness();
+  try {
+    const created = await fetch(ctx.base + '/export', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ include: ['skills/one', ' skills/two '], name: 'sel.dshpkg' }),
+    });
+    assert.equal(created.status, 200);
+    const exportJob = ctx.submitted.find((spec) => spec.kind === 'export');
+    assert.deepEqual(exportJob.args.include, ['skills/one', 'skills/two']);
+
+    const previewed = await fetch(ctx.base + '/import/preview', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ artifactId: 'exports:sel.dshpkg', include: ['hooks'] }),
+    });
+    assert.equal(previewed.status, 200);
+    const previewJob = ctx.submitted.filter((spec) => spec.kind === 'preview').pop();
+    assert.deepEqual(previewJob.args.include, ['hooks']);
+  } finally {
+    await ctx.close();
+  }
+});

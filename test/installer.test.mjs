@@ -182,3 +182,84 @@ test('a backup budget never prunes the pre-restore copies', async () => {
   await rm(home, { recursive: true, force: true });
   await rm(target, { recursive: true, force: true });
 });
+
+/* ----------------------------------------------------- sub-path selection */
+
+async function makeSkillSourceHome() {
+  const home = await mkdtemp(path.join(tmpdir(), 'dp-include-src-'));
+  await mkdir(path.join(home, 'profiles', 'desktop'), { recursive: true });
+  await writeFile(path.join(home, 'profiles', 'desktop', 'package.json'), '{"name":"dsh-profile-desktop"}\n');
+  for (const skill of ['one', 'two']) {
+    await mkdir(path.join(home, 'skills', skill), { recursive: true });
+    await writeFile(path.join(home, 'skills', skill, 'SKILL.md'), '# ' + skill + '\n');
+  }
+  await writeFile(path.join(home, 'AGENTS.md'), 'rules\n');
+  return home;
+}
+
+test('a sub-path import applies only the selected prefix', async () => {
+  const home = await makeSkillSourceHome();
+  const file = await packageIt(home, 'skills.dshpkg');
+
+  const target = await mkdtemp(path.join(tmpdir(), 'dp-include-dst-'));
+  const plan = await preview({ filePath: file, dshHome: target, include: ['skills/one'] });
+  assert.deepEqual(plan.include, ['skills/one']);
+  const planTops = plan.tops.map((top) => top.top);
+  assert.ok(planTops.includes('skills'), 'plan keeps the parent top');
+  assert.ok(plan.totals.files < 5, 'plan covers only the selection, got ' + plan.totals.files);
+
+  const report = await install({ filePath: file, dshHome: target, include: ['skills/one'] });
+  assert.equal(await readFile(path.join(target, 'skills', 'one', 'SKILL.md'), 'utf8'), '# one\n');
+  assert.equal(await exists(path.join(target, 'skills', 'two')), false, '未选中的兄弟技能不落地');
+  assert.equal(await exists(path.join(target, 'AGENTS.md')), false, '未选中的顶层项不落地');
+  assert.deepEqual(report.include, ['skills/one']);
+
+  await rm(home, { recursive: true, force: true });
+  await rm(target, { recursive: true, force: true });
+});
+
+test('replace mode with a sub-path selection never moves siblings aside', async () => {
+  const home = await makeSkillSourceHome();
+  const file = await packageIt(home, 'skills.dshpkg');
+
+  const target = await mkdtemp(path.join(tmpdir(), 'dp-include-dst-'));
+  await mkdir(path.join(target, 'skills', 'two'), { recursive: true });
+  await writeFile(path.join(target, 'skills', 'two', 'SKILL.md'), 'old two\n');
+  await mkdir(path.join(target, 'skills', 'one'), { recursive: true });
+  await writeFile(path.join(target, 'skills', 'one', 'SKILL.md'), 'old one\n');
+
+  const report = await install({ filePath: file, dshHome: target, mode: 'replace', include: ['skills/one'] });
+  assert.equal(await readFile(path.join(target, 'skills', 'one', 'SKILL.md'), 'utf8'), '# one\n', '选中的技能被替换');
+  assert.equal(await readFile(path.join(target, 'skills', 'two', 'SKILL.md'), 'utf8'), 'old two\n', '兄弟技能原样保留');
+
+  const replaced = report.applied.filter((entry) => entry.movedAside).map((entry) => entry.top);
+  assert.deepEqual(replaced, ['skills/one'], '替换单元是所选前缀，而不是整个顶层目录');
+
+  await rm(home, { recursive: true, force: true });
+  await rm(target, { recursive: true, force: true });
+});
+
+test('a selected path the package does not carry is a warning, not a failure', async () => {
+  const home = await makeSkillSourceHome();
+  const file = await packageIt(home, 'skills.dshpkg');
+
+  const target = await mkdtemp(path.join(tmpdir(), 'dp-include-dst-'));
+  const report = await install({ filePath: file, dshHome: target, include: ['skills/nope'] });
+  assert.ok(report.warnings.some((w) => w.includes('skills/nope')), 'expected a warning naming the missing selection');
+  assert.equal(report.applied.length, 0);
+
+  await rm(home, { recursive: true, force: true });
+  await rm(target, { recursive: true, force: true });
+});
+
+test('normalizeInclude cleans selectors and refuses escapes', async () => {
+  const { normalizeInclude } = await import('../lib/collect.mjs');
+  assert.deepEqual(normalizeInclude(undefined), []);
+  assert.deepEqual(normalizeInclude([' skills/one ', './skills/two']), ['skills/one', 'skills/two']);
+  assert.deepEqual(normalizeInclude(['skills/one', 'skills/one']), ['skills/one'], 'duplicates collapse');
+  assert.equal(normalizeInclude(['skills' + String.fromCharCode(92) + 'one'])[0], 'skills/one', 'backslashes become slashes');
+  assert.throws(() => normalizeInclude('skills/one'), /array/);
+  assert.throws(() => normalizeInclude(['../escape']), /climb out/);
+  assert.throws(() => normalizeInclude(['a/../../b']), /climb out/);
+  assert.throws(() => normalizeInclude([42]), /strings/);
+});

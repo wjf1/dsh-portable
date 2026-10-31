@@ -7,6 +7,7 @@ import test from 'node:test';
 
 import { writePackage } from '../lib/archive.mjs';
 import { API_PREFIX, createRouter } from '../lib/routes.mjs';
+import { ENCRYPTION_MAGIC, HEADER_BYTES, TAG_BYTES } from '../lib/crypto.mjs';
 
 /** A job manager that never runs anything: these tests are about the surface. */
 function fakeJobs() {
@@ -512,6 +513,58 @@ test('removing a share that is gone answers 404', async () => {
     });
     assert.equal(response.status, 404);
     assert.equal((await response.json()).code, 'NOT_FOUND');
+  } finally {
+    await ctx.close();
+  }
+});
+
+/* ------------------------------------------------------- encrypted packages */
+
+test('an encrypted upload is accepted and listed as encrypted', async () => {
+  const ctx = await harness();
+  try {
+    await writeRealPackage(ctx.home, path.join(ctx.home, 'staging.dshpkg'));
+    // Wrap the real package in the encryption container format.
+    const { createEncryptTransform } = await import('../lib/crypto.mjs');
+    const { pipeline } = await import('node:stream/promises');
+    const { createReadStream, createWriteStream } = await import('node:fs');
+    const encryptedPath = path.join(ctx.store.dirs.uploads, 'secret.dshpkg');
+    await pipeline(createReadStream(path.join(ctx.home, 'staging.dshpkg')), createEncryptTransform('panel-pass'), createWriteStream(encryptedPath));
+
+    const listed = await (await fetch(ctx.base + '/artifacts')).json();
+    const row = listed.artifacts.find((item) => item.name === 'secret.dshpkg');
+    assert.equal(row.encrypted, true, '面板需要这个标记来显示加密状态');
+
+    // meta explains itself instead of reporting a missing manifest.
+    const meta = await fetch(ctx.base + '/artifacts/meta?artifactId=' + encodeURIComponent('uploads:secret.dshpkg'));
+    assert.equal(meta.status, 400);
+    assert.equal((await meta.json()).code, 'ENCRYPTED');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('an encrypted upload passes the container sanity check', async () => {
+  const ctx = await harness();
+  try {
+    // The upload PUT is exercised by test 'upload accepts a real package' on
+    // plain packages; here the same path must accept a container it cannot
+    // sniff a manifest out of (the manifest is inside the ciphertext).
+    const header = Buffer.alloc(HEADER_BYTES + TAG_BYTES + 4);
+    ENCRYPTION_MAGIC.copy(header, 0);
+    const name = 'put-secret.dshpkg';
+    const response = await fetch(ctx.base + '/upload/' + encodeURIComponent(name), {
+      method: 'PUT',
+      body: header,
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.artifactId, 'uploads:' + name);
+
+    const listed = await (await fetch(ctx.base + '/artifacts')).json();
+    const row = listed.artifacts.find((item) => item.name === name);
+    assert.equal(row.encrypted, true);
   } finally {
     await ctx.close();
   }

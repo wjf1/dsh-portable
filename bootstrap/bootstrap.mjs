@@ -10,6 +10,7 @@
  *   node bootstrap.mjs preview <package.dshpkg> [--home <dir>] [--profile <name>]
  *   node bootstrap.mjs install <package.dshpkg> [--home <dir>] [--profile <name>]
  *                                              [--mode merge|replace] [--yes]
+ *                                              [--passphrase <pw>]
  *
  * Exit codes: 0 success, 1 usage error, 2 the package was refused.
  */
@@ -30,6 +31,7 @@ const USAGE = [
   "  --profile <name>   profile to install into (default: the package's own, else desktop)",
   '  --mode <kind>      merge (default) keeps files the package does not carry;',
   "                     replace moves the target's copies aside first",
+  '  --passphrase <pw>  passphrase for an encrypted package',
   '  --yes              skip the confirmation prompt',
   '  --keep <n>         how many backups to retain (default 5)',
   '  --help             show this text',
@@ -42,13 +44,13 @@ function fail(message, code = 1) {
 }
 
 function parse(argv) {
-  const out = { command: null, packagePath: null, home: null, profile: null, mode: 'merge', yes: false, keep: 5 };
+  const out = { command: null, packagePath: null, home: null, profile: null, mode: 'merge', yes: false, keep: 5, passphrase: null };
   const rest = argv.slice(2);
   for (let i = 0; i < rest.length; i += 1) {
     const token = rest[i];
     if (token === '--help' || token === '-h') { process.stdout.write(USAGE); process.exit(0); }
     if (token === '--yes' || token === '-y') { out.yes = true; continue; }
-    if (token === '--home' || token === '--profile' || token === '--mode' || token === '--keep') {
+    if (token === '--home' || token === '--profile' || token === '--mode' || token === '--keep' || token === '--passphrase') {
       const value = rest[i + 1];
       if (value === undefined) fail(token + ' needs a value');
       i += 1;
@@ -56,6 +58,7 @@ function parse(argv) {
       if (token === '--profile') out.profile = value;
       if (token === '--mode') out.mode = value;
       if (token === '--keep') out.keep = Number(value);
+      if (token === '--passphrase') out.passphrase = value;
       continue;
     }
     if (token.startsWith('-')) fail('unknown option ' + token);
@@ -125,7 +128,7 @@ async function main() {
 
   let plan;
   try {
-    plan = await preview({ filePath: args.packagePath, dshHome: home, profileName: args.profile ?? undefined });
+    plan = await preview({ filePath: args.packagePath, dshHome: home, profileName: args.profile ?? undefined, passphrase: args.passphrase ?? undefined });
   } catch (error) {
     process.stderr.write('\n');
     fail('the package was refused: ' + error.message, 2);
@@ -166,7 +169,7 @@ async function main() {
 
   let result;
   try {
-    result = await install({ filePath: args.packagePath, dshHome: home, profileName: targetProfile, mode: args.mode, keepBackups: args.keep, onProgress });
+    result = await install({ filePath: args.packagePath, dshHome: home, profileName: targetProfile, mode: args.mode, keepBackups: args.keep, onProgress, passphrase: args.passphrase ?? undefined });
   } catch (error) {
     process.stderr.write('\n');
     fail('install failed: ' + error.message, 2);

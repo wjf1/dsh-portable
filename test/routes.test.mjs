@@ -619,3 +619,95 @@ test('export and import pass a cleaned include into the job', async () => {
     await ctx.close();
   }
 });
+
+/* ---------------------------------------------------------- range download */
+
+test('a range request is answered with 206 and the requested slice', async () => {
+  const ctx = await harness();
+  try {
+    const payload = '0123456789abcdef';
+    await writeFile(path.join(ctx.store.dirs.exports, 'range.dshpkg'), payload);
+    const response = await fetch(ctx.base + '/artifacts/download?artifactId=' + encodeURIComponent('exports:range.dshpkg'), {
+      headers: { range: 'bytes=2-5' },
+    });
+    assert.equal(response.status, 206);
+    assert.equal(response.headers.get('content-range'), 'bytes 2-5/16');
+    assert.equal(response.headers.get('accept-ranges'), 'bytes');
+    assert.equal(await response.text(), '2345');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('a suffix range returns the tail of the file', async () => {
+  const ctx = await harness();
+  try {
+    await writeFile(path.join(ctx.store.dirs.exports, 'range.dshpkg'), '0123456789abcdef');
+    const response = await fetch(ctx.base + '/artifacts/download?artifactId=' + encodeURIComponent('exports:range.dshpkg'), {
+      headers: { range: 'bytes=-4' },
+    });
+    assert.equal(response.status, 206);
+    assert.equal(response.headers.get('content-range'), 'bytes 12-15/16');
+    assert.equal(await response.text(), 'cdef');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('an unsatisfiable range is a 416 that names the size', async () => {
+  const ctx = await harness();
+  try {
+    await writeFile(path.join(ctx.store.dirs.exports, 'range.dshpkg'), '0123456789abcdef');
+    const response = await fetch(ctx.base + '/artifacts/download?artifactId=' + encodeURIComponent('exports:range.dshpkg'), {
+      headers: { range: 'bytes=99-' },
+    });
+    assert.equal(response.status, 416);
+    assert.equal(response.headers.get('content-range'), 'bytes */16');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('if-range guards a resume against a changed file', async () => {
+  const ctx = await harness();
+  try {
+    await writeFile(path.join(ctx.store.dirs.exports, 'range.dshpkg'), '0123456789abcdef');
+    const first = await fetch(ctx.base + '/artifacts/download?artifactId=' + encodeURIComponent('exports:range.dshpkg'), {
+      headers: { range: 'bytes=0-7' },
+    });
+    assert.equal(first.status, 206);
+    const etag = first.headers.get('etag');
+    assert.ok(etag && etag.length > 0, 'the response must carry a validator');
+
+    // Same validator: the resume is honoured.
+    const resumed = await fetch(ctx.base + '/artifacts/download?artifactId=' + encodeURIComponent('exports:range.dshpkg'), {
+      headers: { range: 'bytes=8-15', 'if-range': etag },
+    });
+    assert.equal(resumed.status, 206);
+    assert.equal(await resumed.text(), '89abcdef');
+
+    // A validator the file no longer matches: full 200, never a stitched file.
+    const stale = await fetch(ctx.base + '/artifacts/download?artifactId=' + encodeURIComponent('exports:range.dshpkg'), {
+      headers: { range: 'bytes=8-15', 'if-range': '"stale-validator"' },
+    });
+    assert.equal(stale.status, 200);
+    assert.equal(await stale.text(), '0123456789abcdef');
+  } finally {
+    await ctx.close();
+  }
+});
+
+test('an open-ended range still answers 206 with the rest of the file', async () => {
+  const ctx = await harness();
+  try {
+    await writeFile(path.join(ctx.store.dirs.exports, 'range.dshpkg'), '0123456789abcdef');
+    const response = await fetch(ctx.base + '/artifacts/download?artifactId=' + encodeURIComponent('exports:range.dshpkg'), {
+      headers: { range: 'bytes=4-' },
+    });
+    assert.equal(response.status, 206);
+    assert.equal(response.headers.get('content-range'), 'bytes 4-15/16');
+    assert.equal(await response.text(), '456789abcdef');
+  } finally {
+    await ctx.close();
+  }
+});

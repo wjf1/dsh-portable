@@ -2,7 +2,7 @@
 
 本文件记录 dsh-portable 的所有重要变更，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## Unreleased
+## 0.1.11 — 2026-11-08
 
 ### 修复
 

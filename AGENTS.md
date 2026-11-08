@@ -53,3 +53,6 @@ node scripts/sync-profile.mjs               # 同步 profile（npm run sync）
 3. **CHANGELOG 顶段版本必须等于 package.json**：`verify-release.mjs` 强制比对，纯文档提交写了「未发布」而没动版本号，CI 直接红（0.1.4 踩过）；改完文档先本地跑一次该脚本再 push。
 4. **「文档宣称」的功能要用调用链验证**：`mergeProfilePackage` 在 lib 里躺了 8 个版本、HANDOFF 写了、install 从未调用——审计用「函数名 grep + 调用点 grep + 测试 grep」三查，别只看函数存在。
 5. **后台任务终态是 `succeeded` 而非 `done`**，`failed` / `cancelled` 是另外两个终态；前端 `follow` 轮询必须认 `succeeded`，否则面板按钮永久禁用（0.1.0–0.1.5 都错在这里）。
+6. **上传必须校验 manifest**：`pipeline` 成功只代表字节写完，截断包会让之后每次预览 / 导入报 `unexpected end of file`；落盘前 `readManifest(part)` 一次，失败删临时文件并回 400 `BAD_ARCHIVE`。
+7. **符号链接在 Windows 无开发者模式时创建失败**：必须降级为 warning，不能中断导入。
+8. **环境事实**：本机 gh 账号是 `wjf1`；`git init` 默认分支已改 main；真实 DSH 目录里 `app.asar` 是**文件**不是目录（读源码用 `npx asar extract`）；在 profile 里跑 `npm install` 会顺带 prune 掉未声明的手工目录，执行前先备份到 `_trash_<时间戳>`。

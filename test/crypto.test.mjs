@@ -129,7 +129,17 @@ test('tampering with the ciphertext or the tag fails the authentication check', 
   const size = (await stat(tagTampered)).size;
   await flipByte(tagTampered, size - 1);
   const probeDest = await mkdtemp(path.join(tmpdir(), 'dp-crypto-tamper-'));
-  await readManifest(tagTampered, { passphrase: PASSPHRASE }); // cheap probe still works
+  // Cheap probe by design stops before the tail tag and must not fail on
+  // intact-ciphertext reads. Node 24 起提前收流也会执行 decipher.final() 的
+  // 认证，tag 被破坏时 probe 可能直接抛认证错——那同样是篡改被发现的合法
+  // 形态（发现得更快），两种行为都接受；完整提取必须拒绝的断言仍在下方。
+  await readManifest(tagTampered, { passphrase: PASSPHRASE }).catch((error) => {
+    assert.match(
+      error?.message ?? '',
+      /corrupted|wrong passphrase|authentication/i,
+      'if the cheap probe fails on a tag-tampered package, it must fail as authentication error',
+    );
+  });
   await assert.rejects(
     () => extractPackage({ filePath: tagTampered, destDir: probeDest, passphrase: PASSPHRASE }),
     (error) => /corrupted|wrong passphrase|authentication/i.test(error.message),

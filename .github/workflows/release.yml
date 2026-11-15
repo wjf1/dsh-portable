@@ -6,6 +6,8 @@ on:
 
 permissions:
   contents: write
+  # npm publish --provenance 需要 OIDC token 生成 Sigstore 出处证明
+  id-token: write
 
 jobs:
   publish:
@@ -35,9 +37,9 @@ jobs:
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: npm publish
+      - name: npm publish（带 provenance）
         if: steps.published.outputs.exists != 'true'
-        run: npm publish
+        run: npm publish --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: 从 tag 与 CHANGELOG 生成 Release
@@ -69,3 +71,15 @@ jobs:
           TITLE: ${{ steps.notes.outputs.title }}
         run: |
           gh release create "${GITHUB_REF_NAME}" --title "$TITLE" --notes-file release-body.md --verify-tag
+      # 气隙机/内网机取不到 npm registry：把发布用的 tarball 与校验和直接挂到 Release 资产
+      - name: 上传 npm tarball 与 SHA256SUMS 到 Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          npm pack --pack-destination dist
+          cd dist
+          sha256sum $(ls *.tgz) > SHA256SUMS.txt
+          gh release upload "${GITHUB_REF_NAME}" *.tgz SHA256SUMS.txt --clobber
+          ls -la

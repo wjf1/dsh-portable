@@ -2,6 +2,12 @@
 
 本文件记录 dsh-portable 的所有重要变更，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### 新增
+
+- **Release 资产与供应链出处**：release workflow 的 `npm publish` 带 `--provenance`（生成 Sigstore 出处证明，workflow 相应增加 `id-token: write` 权限）；GitHub Release 页开始挂载与 registry 同源的 npm tarball 及 `SHA256SUMS.txt`——气隙机 / 内网机不再需要访问 npm registry 也能完成校验与安装。（`.github/workflows/release.yml`）
+
 ## 0.1.11 — 2026-11-08
 
 ### 修复
